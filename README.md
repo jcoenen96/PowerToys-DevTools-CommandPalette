@@ -20,6 +20,8 @@ Open in Visual Studio
 
 - **One command per tool.** Every installed tool gets its own top-level command, such as *Open in Visual Studio*,
   *Open in Rider* or *Open in Visual Studio Code*, so each can have **its own hotkey and alias** (see below).
+- **Or everything at once.** *All dev tools* shows every tool's results on one page, grouped per tool, and gets
+  its own hotkey too.
 - **Solutions with their branch.** Visual Studio and Rider list the `.slnx`/`.sln` files of every repository and
   worktree as `Shop.slnx (feature/cart)`; folder tools list the repositories as `Shop (feature/cart)`. A repository
   with both `Shop.slnx` and `Shop.sln` shows the `.slnx`. Branch names come straight from `.git`, so the list is
@@ -71,9 +73,10 @@ tool you want on a key:
 1. Open Command Palette settings, **Extensions > Dev tools**.
 2. Select the command, for example *Open in Visual Studio*, and set a **global hotkey** (say `Win+Ctrl+V`) and an
    **alias** (say `vs`).
+3. Do the same for *All dev tools* (say `Win+Ctrl+D`) to get every tool's results together.
 
 The hotkey opens the palette straight on that tool's list of solutions with their branches. Command ids are stable
-(`devtools.tool.<tool id>`), so your hotkeys survive updates and changes to `tools.json`.
+(`devtools.tool.<tool id>`, and `devtools.all` for *All dev tools*), so your hotkeys survive updates and changes to `tools.json`.
 
 ### Your own tools: `tools.json`
 

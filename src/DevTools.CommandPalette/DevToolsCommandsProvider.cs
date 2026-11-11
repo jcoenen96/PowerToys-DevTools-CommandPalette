@@ -9,7 +9,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 namespace DevTools.CommandPalette;
 
 /// <summary>
-/// The top-level commands: one "Open in &lt;tool&gt;" per installed tool (each can get its own hotkey and alias in
+/// The top-level commands: "All dev tools", one "Open in &lt;tool&gt;" per installed tool (each can get its own hotkey and alias in
 /// Command Palette), "Git repositories", and "Edit dev tools". The list follows the settings and tools.json.
 /// </summary>
 public sealed partial class DevToolsCommandsProvider : CommandProvider
@@ -97,6 +97,12 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
 
         return
         [
+            new CommandItem(new AllToolsPage(_services))
+            {
+                Title = "All dev tools",
+                Subtitle = "Every tool's solutions and repositories on one page, with their branch",
+                MoreCommands = [settingsItem],
+            },
             .. tools,
             new CommandItem(new RepositoriesPage(_services))
             {

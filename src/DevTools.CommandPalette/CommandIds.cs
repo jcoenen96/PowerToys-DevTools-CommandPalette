@@ -6,6 +6,7 @@ namespace DevTools.CommandPalette;
 /// </summary>
 internal static class CommandIds
 {
+    public const string AllTools = "devtools.all";
     public const string Repositories = "devtools.repositories";
     public const string EditTools = "devtools.edit-tools";
 
