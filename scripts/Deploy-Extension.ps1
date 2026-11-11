@@ -81,7 +81,8 @@ function Stop-Extension {
     }
 }
 
-# Every installed copy of the extension: all architectures, versions and install folders.
+# Every installed copy of the extension: all architectures, versions and install folders. PowerShell unrolls a
+# returned array (one package comes back as a scalar), so callers wrap the call in @().
 function Get-ExtensionPackage {
     return @(Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue)
 }
@@ -132,7 +133,7 @@ if ($env:OS -ne 'Windows_NT') {
 }
 
 if ($Uninstall) {
-    $installed = Get-ExtensionPackage
+    $installed = @(Get-ExtensionPackage)
     if ($installed.Count -eq 0) {
         Write-Host "$PackageName is not installed."
         return
@@ -187,7 +188,7 @@ Stop-Extension
 
 # Only one copy may stay: anything not installed from this build folder (another configuration, platform or
 # checkout, a release .msix) is removed. The copy from this folder is updated in place, which keeps its settings.
-$installed = Get-ExtensionPackage
+$installed = @(Get-ExtensionPackage)
 $others = @(
     $installed | Where-Object {
         $Clean -or -not [string]::Equals($_.InstallLocation, $manifest.DirectoryName, [StringComparison]::OrdinalIgnoreCase)
@@ -203,7 +204,7 @@ if ($PSCmdlet.ShouldProcess($manifest.FullName, 'Add-AppxPackage -Register')) {
     Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
 }
 
-$packages = Get-ExtensionPackage
+$packages = @(Get-ExtensionPackage)
 foreach ($package in $packages) {
     Write-Host "Installed $($package.PackageFullName) from $($package.InstallLocation)" -ForegroundColor Green
 }
