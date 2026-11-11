@@ -8,10 +8,11 @@
       1. builds src/DevTools.CommandPalette for this machine's platform;
       2. stops the running extension, so its files can be replaced;
       3. registers the build output as the DevTools.CommandPalette package (Add-AppxPackage -Register), the same
-         loose-file deployment Visual Studio's Build > Deploy does. An earlier deployment is updated in place, so
-         the extension's settings and tools.json are kept;
-      4. tells Command Palette to reload its extensions (x-cmdpal://reload). The first time, Command Palette asks
-         whether this may reload it.
+         loose-file deployment Visual Studio's Build > Deploy does. An earlier deployment from the same folder is
+         updated in place, so the extension's settings and tools.json are kept. Any other copy (another
+         configuration, platform or checkout, or a release .msix) is removed first, so only one stays installed;
+      4. restarts Command Palette, so it lists the extension once. Reloading the extensions of a running Command
+         Palette while it is also handling the package update can list the extension twice.
 
     Registering an unsigned package needs Windows Developer Mode (Settings > System > For developers).
 
@@ -25,7 +26,11 @@
     Deploy the last build without building again.
 
 .PARAMETER NoReload
-    Don't ask Command Palette to reload; run "Reload" in Command Palette yourself.
+    Don't restart Command Palette; run "Reload" in Command Palette yourself.
+
+.PARAMETER Clean
+    Remove every installed copy of the extension first, including the one being updated, and install fresh. This
+    resets the extension's settings and tools.json.
 
 .PARAMETER Uninstall
     Remove the extension instead. This also removes its settings and tools.json.
@@ -49,6 +54,8 @@ param(
     [switch] $SkipBuild,
 
     [switch] $NoReload,
+
+    [switch] $Clean,
 
     [switch] $Uninstall
 )
@@ -74,6 +81,46 @@ function Stop-Extension {
     }
 }
 
+# Every installed copy of the extension: all architectures, versions and install folders.
+function Get-ExtensionPackage {
+    return @(Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue)
+}
+
+function Remove-ExtensionPackage {
+    [CmdletBinding(SupportsShouldProcess)]
+    param($Packages, [string] $Reason)
+
+    foreach ($package in $Packages) {
+        if ($PSCmdlet.ShouldProcess($package.PackageFullName, 'Remove-AppxPackage')) {
+            Write-Step "Removing $($package.PackageFullName) ($Reason)"
+            Remove-AppxPackage -Package $package.PackageFullName
+        }
+    }
+}
+
+# Restarting rebuilds Command Palette's extension list from scratch; a reload of the running app can race with
+# its own handling of the package update and list the extension twice.
+function Restart-CommandPalette {
+    $palette = Get-AppxPackage -Name 'Microsoft.CommandPalette*' -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -in 'Microsoft.CommandPalette', 'Microsoft.CommandPalette.Dev' } |
+        Select-Object -First 1
+    if ($null -eq $palette) {
+        Write-Warning 'Command Palette is not installed (is PowerToys installed with Command Palette on?).'
+        return
+    }
+
+    Write-Step 'Restarting Command Palette'
+    Get-Process -Name 'Microsoft.CmdPal.UI' -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Milliseconds 500
+    $appId = @((Get-AppxPackageManifest -Package $palette.PackageFullName).Package.Applications.Application)[0].Id
+    try {
+        Start-Process "shell:AppsFolder\$($palette.PackageFamilyName)!$appId"
+    }
+    catch {
+        Write-Warning 'Could not start Command Palette again. Start it from PowerToys, or press its hotkey.'
+    }
+}
+
 function Test-DeveloperMode {
     $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
     $value = Get-ItemProperty -Path $key -Name 'AllowDevelopmentWithoutDevLicense' -ErrorAction SilentlyContinue
@@ -85,20 +132,17 @@ if ($env:OS -ne 'Windows_NT') {
 }
 
 if ($Uninstall) {
-    $installed = Get-AppxPackage -Name $PackageName
-    if ($null -eq $installed) {
+    $installed = Get-ExtensionPackage
+    if ($installed.Count -eq 0) {
         Write-Host "$PackageName is not installed."
         return
     }
 
     Stop-Extension
-    if ($PSCmdlet.ShouldProcess($installed.PackageFullName, 'Remove-AppxPackage')) {
-        Write-Step "Removing $($installed.PackageFullName)"
-        $installed | Remove-AppxPackage
-    }
+    Remove-ExtensionPackage $installed 'uninstall'
 
     if (-not $NoReload) {
-        Start-Process 'x-cmdpal://reload' -ErrorAction SilentlyContinue
+        Restart-CommandPalette
     }
 
     return
@@ -141,38 +185,36 @@ if ($null -eq $manifest) {
 
 Stop-Extension
 
-Write-Step "Registering $($manifest.DirectoryName)"
-if ($PSCmdlet.ShouldProcess($manifest.FullName, 'Add-AppxPackage -Register')) {
-    try {
-        Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+# Only one copy may stay: anything not installed from this build folder (another configuration, platform or
+# checkout, a release .msix) is removed. The copy from this folder is updated in place, which keeps its settings.
+$installed = Get-ExtensionPackage
+$others = @(
+    $installed | Where-Object {
+        $Clean -or -not [string]::Equals($_.InstallLocation, $manifest.DirectoryName, [StringComparison]::OrdinalIgnoreCase)
     }
-    catch {
-        # A package installed from elsewhere (another checkout, a release .msix) can't be updated in place.
-        $installed = Get-AppxPackage -Name $PackageName
-        if ($null -eq $installed -or $installed.InstallLocation -eq $manifest.DirectoryName) {
-            throw
-        }
-
-        Write-Warning "Replacing $PackageName installed from $($installed.InstallLocation). Its settings and tools.json are reset."
-        $installed | Remove-AppxPackage
-        Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown
-    }
+)
+if ($others.Count -gt 0) {
+    Write-Warning "Removing $($others.Count) other installed copy(ies) of $PackageName. Their settings and tools.json are reset."
+    Remove-ExtensionPackage $others 'replaced by this build'
 }
 
-$package = Get-AppxPackage -Name $PackageName
-if ($null -ne $package) {
+Write-Step "Registering $($manifest.DirectoryName)"
+if ($PSCmdlet.ShouldProcess($manifest.FullName, 'Add-AppxPackage -Register')) {
+    Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+}
+
+$packages = Get-ExtensionPackage
+foreach ($package in $packages) {
     Write-Host "Installed $($package.PackageFullName) from $($package.InstallLocation)" -ForegroundColor Green
+}
+
+if ($packages.Count -gt 1) {
+    Write-Warning "$PackageName is installed $($packages.Count) times. Run this again with -Clean to keep only this build."
 }
 
 if ($NoReload) {
     Write-Host 'Run "Reload" in Command Palette to pick up the new build.'
 }
 else {
-    Write-Step 'Reloading Command Palette extensions'
-    try {
-        Start-Process 'x-cmdpal://reload'
-    }
-    catch {
-        Write-Warning 'Could not ask Command Palette to reload (is PowerToys running?). Run "Reload" in Command Palette yourself.'
-    }
+    Restart-CommandPalette
 }

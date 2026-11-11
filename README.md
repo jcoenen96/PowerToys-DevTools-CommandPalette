@@ -57,14 +57,15 @@ The extension is an MSIX package, like every Command Palette extension. Until th
    ./scripts/Deploy-Extension.ps1
    ```
 
-   It builds the extension for your machine (x64 or ARM64), registers the build with Windows and tells Command
-   Palette to reload its extensions. Run it again after every change: it updates the installed extension in
-   place, so your settings, `tools.json` and hotkeys stay. The first reload asks whether the script may reload
-   Command Palette.
+   It builds the extension for your machine (x64 or ARM64), registers the build with Windows and restarts Command
+   Palette. Run it again after every change: it updates the installed extension in place, so your settings,
+   `tools.json` and hotkeys stay. Any other installed copy (another configuration, platform or checkout) is
+   removed first, so the extension is only installed once.
 
    - `-Configuration Release`, `-Platform ARM64`: build something else.
    - `-SkipBuild`: deploy the last build again.
-   - `-NoReload`: skip the reload; run **Reload** in Command Palette yourself.
+   - `-NoReload`: don't restart Command Palette; run **Reload** in it yourself.
+   - `-Clean`: remove every installed copy and install fresh (resets settings and `tools.json`).
    - `-Uninstall`: remove the extension (and its settings).
 
    It needs **Developer Mode** (Settings > System > For developers), which any unsigned extension needs. In Visual
