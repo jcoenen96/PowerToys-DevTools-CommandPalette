@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    Sets up the formatter for developers who only build the .NET projects: restores the repo-local dotnet
+    tools (CSharpier) and points git at .githooks so the pre-commit formatter runs. Runs once per
+    checkout (the marker lives in .git) and never fails the build, e.g. in Docker builds without git.
+  -->
+  <PropertyGroup>
+    <_RepoRoot>$(MSBuildThisFileDirectory)</_RepoRoot>
+    <_DevToolingMarker>$(_RepoRoot).git/devtools-tooling-ready</_DevToolingMarker>
+  </PropertyGroup>
+
+  <Target
+    Name="SetUpDevTooling"
+    BeforeTargets="Build"
+    Condition="'$(CI)' != 'true' and '$(DesignTimeBuild)' != 'true' and Exists('$(_RepoRoot).git') and !Exists('$(_DevToolingMarker)')"
+  >
+    <Exec
+      Command="dotnet tool restore"
+      WorkingDirectory="$(_RepoRoot)"
+      ContinueOnError="true"
+      StandardOutputImportance="low"
+    />
+    <Exec Command="git config core.hooksPath .githooks" WorkingDirectory="$(_RepoRoot)" ContinueOnError="true" />
+    <Touch Files="$(_DevToolingMarker)" AlwaysCreate="true" ContinueOnError="true" />
+  </Target>
+</Project>

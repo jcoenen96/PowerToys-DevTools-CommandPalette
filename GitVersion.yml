@@ -1,0 +1,10 @@
+# GitVersion (https://gitversion.net) works out the version from the commit messages on main, which are
+# the squash-merged pull request titles. Titles follow Conventional Commits (checked on every PR):
+#   feat!: ... / fix(git)!: ...   breaking change   -> major
+#   feat: ... / feat(git): ...    new feature       -> minor
+#   fix: ..., docs: ..., etc.     anything else     -> patch
+workflow: TrunkBased/preview1
+commit-message-incrementing: Enabled
+major-version-bump-message: '^\w+(\([^)]*\))?!:'
+minor-version-bump-message: '^feat(\([^)]*\))?:'
+patch-version-bump-message: '^\w+(\([^)]*\))?:'

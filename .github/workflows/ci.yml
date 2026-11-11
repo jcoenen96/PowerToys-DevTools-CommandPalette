@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  megalinter:
+    name: MegaLinter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Betterleaks scans the history of the pushed commits.
+          fetch-depth: 0
+      - name: Lint and analyze everything
+        # Configured in .mega-linter.yml: CSharpier, the .NET analyzers, secret and vulnerability scans,
+        # and the YAML, Markdown, shell and workflow linters.
+        uses: oxsecurity/megalinter/flavors/dotnet@v9
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload MegaLinter reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: megalinter-reports
+          path: megalinter-reports/
+          if-no-files-found: ignore
+
+  core:
+    name: Domain, application and infrastructure tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Unit and integration tests
+        # The infrastructure tests create real git repositories and worktrees in a temp folder.
+        run: dotnet test DevTools.Core.slnf --logger "console;verbosity=normal"
+
+  extension:
+    name: Build extension (${{ matrix.platform }})
+    runs-on: windows-latest
+    needs: version
+    strategy:
+      matrix:
+        platform: [x64, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Build
+        run: >-
+          dotnet build src/DevTools.CommandPalette/DevTools.CommandPalette.csproj
+          -c Release -p:Platform=${{ matrix.platform }} -p:CI=true
+          -p:Version=${{ needs.version.outputs.semver }}
+
+  extension-tests:
+    name: Extension tests on PowerToys
+    # Runs the extension's integration tests in process, then installs PowerToys, deploys the extension with
+    # scripts/Deploy-Extension.ps1 and tests the installed extension over COM, the way Command Palette uses it.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Integration tests (in process)
+        run: >-
+          dotnet test tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
+          -p:Platform=x64 -p:CI=true --logger "console;verbosity=normal"
+      - name: Install PowerToys
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $winget = Get-Command winget -ErrorAction SilentlyContinue
+          if ($winget) {
+            winget install --id Microsoft.PowerToys --exact --silent --scope machine `
+              --accept-package-agreements --accept-source-agreements --disable-interactivity
+          }
+          if (-not (Test-Path "$env:ProgramFiles\PowerToys\PowerToys.exe")) {
+            # No winget on the runner (or it failed): the machine-wide installer from the latest release.
+            $release = gh api repos/microsoft/PowerToys/releases/latest | ConvertFrom-Json
+            $asset = $release.assets | Where-Object name -Like 'PowerToysSetup-*-x64.exe' | Select-Object -First 1
+            $setup = Join-Path $env:RUNNER_TEMP $asset.name
+            Invoke-WebRequest $asset.browser_download_url -OutFile $setup
+            Start-Process $setup -ArgumentList '/quiet', '/norestart' -Wait
+          }
+          Get-AppxPackage -Name 'Microsoft.CommandPalette*' | Format-List Name, Version, InstallLocation
+      - name: Turn on Developer Mode
+        shell: pwsh
+        run: |
+          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+          if (-not (Test-Path $key)) { New-Item -Path $key | Out-Null }
+          New-ItemProperty -Path $key -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWORD -Force
+      - name: A repository to list
+        shell: pwsh
+        run: |
+          $repo = Join-Path $env:USERPROFILE 'source\repos\Sample'
+          New-Item -ItemType Directory -Force $repo | Out-Null
+          git -C $repo init --initial-branch=main --quiet
+          Set-Content (Join-Path $repo 'Sample.slnx') '<Solution />'
+      - name: Deploy the extension
+        shell: pwsh
+        run: ./scripts/Deploy-Extension.ps1 -Platform x64 -NoReload
+      - name: Integration tests (installed extension)
+        env:
+          DEVTOOLS_PACKAGED_TESTS: "1"
+        run: >-
+          dotnet test tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
+          -p:Platform=x64 --no-build --filter "FullyQualifiedName~PackagedExtensionTests"
+          --logger "console;verbosity=normal"
+
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semver }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GitVersion reads the commit messages since the start of the history.
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Work out the version (GitVersion.yml)
+        id: gitversion
+        run: |
+          dotnet tool restore
+          semver="$(dotnet tool run dotnet-gitversion /showvariable SemVer)"
+          echo "semver=$semver" >> "$GITHUB_OUTPUT"
+          echo "Version: $semver" >> "$GITHUB_STEP_SUMMARY"

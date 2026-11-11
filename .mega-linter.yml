@@ -1,0 +1,44 @@
+# MegaLinter (https://megalinter.io) runs every linter and analyzer of the repository in CI, in one
+# Docker image (the dotnet flavor). It is too heavy to run on every commit, so the pre-commit hook
+# runs the fast subset locally instead; see README "Code style".
+APPLY_FIXES: none
+VALIDATE_ALL_CODEBASE: true
+SHOW_ELAPSED_TIME: true
+FILEIO_REPORTER: false
+PRINT_ALPACA: false
+
+# The project's own lint commands, with the tool versions the repository pins.
+PLUGINS:
+  - file://.mega-linter/mega-linter-plugin-devtools/devtools.megalinter-descriptor.yml
+
+PRE_COMMANDS:
+  # The image ships an older .NET SDK; the projects need .NET 11.
+  - command: curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 11.0 --install-dir /usr/lib/dotnet
+    cwd: root
+    continue_if_failed: false
+  - command: dotnet tool restore
+    cwd: workspace
+    continue_if_failed: false
+
+ENABLE_LINTERS:
+  # Project tools (see the plugin above)
+  - DEVTOOLS_CSHARPIER
+  - DEVTOOLS_DOTNET_ANALYZERS
+  # Secrets
+  - REPOSITORY_BETTERLEAKS
+  - REPOSITORY_SECRETLINT
+  # Vulnerable dependencies and insecure configuration
+  - REPOSITORY_TRIVY
+  # Everything else in the repository
+  - EDITORCONFIG_EDITORCONFIG_CHECKER
+  - MARKDOWN_MARKDOWNLINT
+  - YAML_YAMLLINT
+  - JSON_JSONLINT
+  - ACTION_ACTIONLINT
+  - BASH_SHELLCHECK
+  - POWERSHELL_POWERSHELL
+
+# Fail on serious findings only.
+REPOSITORY_TRIVY_ARGUMENTS: --severity HIGH,CRITICAL --skip-dirs '**/node_modules' --skip-dirs '**/bin' --skip-dirs '**/obj'
+
+FILTER_REGEX_EXCLUDE: (node_modules/|/bin/|/obj/|package-lock\.json|megalinter-reports/|AppPackages/)

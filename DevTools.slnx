@@ -1,0 +1,19 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="ARM64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/DevTools.Domain/DevTools.Domain.csproj" />
+    <Project Path="src/DevTools.Application/DevTools.Application.csproj" />
+    <Project Path="src/DevTools.Infrastructure/DevTools.Infrastructure.csproj" />
+    <Project Path="src/DevTools.CommandPalette/DevTools.CommandPalette.csproj">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DevTools.Application.Tests/DevTools.Application.Tests.csproj" />
+    <Project Path="tests/DevTools.Infrastructure.Tests/DevTools.Infrastructure.Tests.csproj" />
+    <Project Path="tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj" />
+  </Folder>
+</Solution>

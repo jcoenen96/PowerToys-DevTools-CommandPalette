@@ -1,0 +1,29 @@
+<Project>
+  <!-- Every NuGet version lives here (central package management). -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Command Palette extension (versions from the PowerToys extension template) -->
+    <PackageVersion Include="Microsoft.CommandPalette.Extensions" Version="0.12.260812002" />
+    <PackageVersion Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.261102100" />
+    <PackageVersion Include="Shmuelie.WinRTServer" Version="2.1.1" />
+    <!--
+      The SDK's toolkit uses these, but its package doesn't declare them, so they would be missing from the
+      extension. ToolGood.Words.Pinyin is what the toolkit's search (FuzzyStringMatcher) loads: without it, typing in
+      any page that filters with ListHelpers crashes the extension. Versions from the toolkit's deps.json.
+    -->
+    <PackageVersion Include="ToolGood.Words.Pinyin" Version="3.1.0.3" />
+    <PackageVersion Include="System.Drawing.Common" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Win32.SystemEvents" Version="10.0.11" />
+    <!-- Tests -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.1" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="11.0.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+</Project>
