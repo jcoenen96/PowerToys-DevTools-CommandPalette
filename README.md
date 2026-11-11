@@ -153,7 +153,7 @@ The extension project itself needs Windows: build and deploy it from Visual Stud
 
 ## Code style
 
-The same tooling as GW2Trades: C# is formatted with [CSharpier](https://csharpier.com) and
+C# is formatted with [CSharpier](https://csharpier.com) and
 linted by the .NET analyzers with the rules in `.editorconfig` (warnings fail CI).
 
 ### On your machine
