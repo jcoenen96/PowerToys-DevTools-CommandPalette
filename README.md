@@ -45,11 +45,26 @@ Open in Visual Studio
 The extension is an MSIX package, like every Command Palette extension. Until there is a release:
 
 1. Install [PowerToys](https://learn.microsoft.com/windows/powertoys/install) with Command Palette turned on.
-2. Open `DevTools.slnx` in Visual Studio 2026 (with the workloads in `.vsconfig`) and the .NET 11
-   SDK installed.
-3. Pick the **x64** or **ARM64** platform, set *DevTools.CommandPalette* as the startup project, and run
-   **Build > Deploy**.
-4. In Command Palette run **Reload** ("Reload Command Palette extensions").
+2. Install the [.NET 11 SDK](https://dot.net). To debug, also Visual Studio 2026 with the workloads in
+   `.vsconfig`.
+3. Run the deploy script from the repository root:
+
+   ```powershell
+   ./scripts/Deploy-Extension.ps1
+   ```
+
+   It builds the extension for your machine (x64 or ARM64), registers the build with Windows and tells Command
+   Palette to reload its extensions. Run it again after every change: it updates the installed extension in
+   place, so your settings, `tools.json` and hotkeys stay. The first reload asks whether the script may reload
+   Command Palette.
+
+   - `-Configuration Release`, `-Platform ARM64`: build something else.
+   - `-SkipBuild`: deploy the last build again.
+   - `-NoReload`: skip the reload; run **Reload** in Command Palette yourself.
+   - `-Uninstall`: remove the extension (and its settings).
+
+   It needs **Developer Mode** (Settings > System > For developers), which any unsigned extension needs. In Visual
+   Studio, **Build > Deploy** on *DevTools.CommandPalette* does the same.
 
 ## Set it up
 
@@ -148,8 +163,8 @@ tests/
 dotnet test DevTools.Core.slnf        # the cross-platform layers and their tests; works on Linux and macOS too
 ```
 
-The extension project itself needs Windows: build and deploy it from Visual Studio, or
-`dotnet build src/DevTools.CommandPalette -p:Platform=x64`.
+The extension project itself needs Windows. Build, install and reload it in one go with
+`./scripts/Deploy-Extension.ps1` (see [Install](#install)).
 
 ## Code style
 

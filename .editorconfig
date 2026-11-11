@@ -24,6 +24,9 @@ dotnet_diagnostic.CA1873.severity = none
 # CA1711: names like GitCommandCollection describe what the type is.
 dotnet_diagnostic.CA1711.severity = none
 
+[*.{ps1,psd1}]
+indent_size = 4
+
 [tests/**.cs]
 # Test names read as sentences: Worktree_head_is_read_from_the_gitdir_file.
 dotnet_diagnostic.CA1707.severity = none
