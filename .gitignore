@@ -24,3 +24,6 @@ node_modules/
 
 # MegaLinter output
 megalinter-reports/
+
+# Created by the Windows SDK build tasks when the extension is built on Linux or macOS
+.mono/
