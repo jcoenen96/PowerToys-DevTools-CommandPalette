@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- LibraryImport (reading app execution aliases, ExecutableIconLocator) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

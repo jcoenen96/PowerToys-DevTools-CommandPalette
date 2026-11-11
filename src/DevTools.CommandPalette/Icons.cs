@@ -1,6 +1,7 @@
 using DevTools.Application.Abstractions;
 using DevTools.Domain.Git;
 using DevTools.Domain.Tools;
+using DevTools.Infrastructure.Tools;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace DevTools.CommandPalette;
@@ -37,20 +38,19 @@ internal static class Icons
     public static IconInfo For(GitRepository repository) => repository.IsWorktree ? Worktree : Repository;
 
     /// <summary>
-    /// The tool's own icon from its executable when it is installed and the tool keeps the default glyph;
-    /// otherwise the glyph, emoji or image path from the tool definition.
+    /// The tool's icon: a custom one from tools.json when set (a glyph, emoji, or image or program path), otherwise
+    /// the icon of the program that launches it. For a launcher script or an app execution alias that is the
+    /// program behind it (see <see cref="ExecutableIconLocator"/>), so PATH tools like <c>code.cmd</c> and
+    /// <c>wt.exe</c> get their real icon too.
     /// </summary>
     public static IconInfo For(ToolDefinition tool, IExecutableResolver resolver)
     {
-        if (tool.Icon == ToolDefinition.DefaultIcon || string.IsNullOrWhiteSpace(tool.Icon))
+        if (!string.IsNullOrWhiteSpace(tool.Icon) && tool.Icon != ToolDefinition.DefaultIcon)
         {
-            var executable = resolver.Resolve(tool.Executables);
-            if (!string.IsNullOrEmpty(executable) && executable.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                return new IconInfo(executable);
-            }
+            return new IconInfo(tool.Icon);
         }
 
-        return new IconInfo(tool.Icon);
+        var program = ExecutableIconLocator.Find(resolver.Resolve(tool.Executables));
+        return new IconInfo(program ?? ToolDefinition.DefaultIcon);
     }
 }

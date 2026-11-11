@@ -24,7 +24,11 @@ public sealed class DevToolsServices : IDisposable
         Settings = settings;
         Catalog = catalog;
         var resolver = new ExecutableResolver(time);
-        catalog.Changed += (_, _) => resolver.Clear();
+        catalog.Changed += (_, _) =>
+        {
+            resolver.Clear();
+            ExecutableIconLocator.Clear();
+        };
         Resolver = resolver;
 
         Repositories = new RepositoryService(new FileSystemRepositoryScanner(), settings, time);

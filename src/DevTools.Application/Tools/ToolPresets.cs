@@ -90,9 +90,8 @@ public static class ToolPresets
         {
             Id = "terminal",
             DisplayName = "Windows Terminal",
-            // wt.exe is an app execution alias without an icon of its own, so the tool gets a glyph.
+            // wt.exe is an app execution alias; the icon comes from the packaged program it points to.
             Executables = ["wt.exe"],
-            Icon = "\uE756",
             Arguments = $"-d \"{ArgumentPlaceholders.Folder}\"",
             TargetKind = ToolTargetKind.Folder,
             IsPreset = true,

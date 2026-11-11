@@ -35,6 +35,9 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
     /// <summary>Lets a page add the tool to each item, e.g. a section per tool.</summary>
     protected virtual void Decorate(ListItem item, LaunchTarget target) { }
 
+    /// <summary>The icon of a project on the first list: the tool's on a tool page.</summary>
+    protected abstract IconInfo ProjectIcon { get; }
+
     /// <summary>The title of a project's page, e.g. "Shop in Visual Studio".</summary>
     protected abstract string ProjectTitle(Project project);
 
@@ -94,13 +97,15 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
             var toolIndex = 0;
             foreach (var tool in Tools(installed))
             {
+                // Every result shows the icon of the program it opens with; the worktree tag tells them apart.
+                var icon = Icons.For(tool, Services.Resolver);
                 foreach (var target in Services.Targets.GetTargets(tool, refresh))
                 {
                     var item = new ListItem(new LaunchCommand(Services, target))
                     {
                         Title = target.Title,
                         Subtitle = target.Path,
-                        Icon = Icons.For(target.Repository),
+                        Icon = icon,
                         Tags = Tags.For(target.Repository),
                         TextToSuggest = target.Name,
                         MoreCommands = RepositoryMenu.For(Services, target.Repository, installed, Refresh, target),
@@ -149,7 +154,7 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
                 {
                     Title = project.Name,
                     Subtitle = project.Path,
-                    Icon = Icons.Repository,
+                    Icon = ProjectIcon,
                     Tags = worktrees switch
                     {
                         0 => [],

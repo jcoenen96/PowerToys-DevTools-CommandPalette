@@ -28,7 +28,9 @@ public sealed class JsonToolCatalog : IToolCatalog, IDisposable
           //   targetKind             "Folder" (open the repository folder) or "Files" (open files matching filePatterns)
           //   filePatterns           e.g. ["*.slnx", "*.sln"]; earlier patterns win when a folder has both
           //   fallBackToFolder       with "Files": offer the folder when a repository has no matching file
-          //   icon                   a Segoe Fluent Icons glyph, an emoji, or a path to an .exe, .ico or .png
+          //   icon                   optional; by default the icon of the program that launches the tool (also
+          //                          for a name on PATH, a .cmd launcher or an app alias like wt.exe). Set a
+          //                          Segoe Fluent Icons glyph, an emoji, or a path to an .exe, .ico or .png
           //
           // Preset ids: visualstudio, vscode, vscode-insiders, rider, intellij-idea, webstorm, pycharm, goland,
           // clion, rustrover, datagrip, orca, terminal, explorer.

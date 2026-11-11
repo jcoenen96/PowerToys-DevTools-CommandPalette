@@ -31,12 +31,8 @@ public class ToolPresetTests
     }
 
     [Fact]
-    public void Every_preset_uses_its_executables_icon_except_the_terminal_alias()
+    public void Every_preset_uses_the_icon_of_its_program()
     {
-        Assert.All(
-            ToolPresets.All.Where(tool => tool.Id != "terminal"),
-            tool => Assert.Equal(ToolDefinition.DefaultIcon, tool.Icon)
-        );
-        Assert.NotEqual(ToolDefinition.DefaultIcon, ToolPresets.All.Single(tool => tool.Id == "terminal").Icon);
+        Assert.All(ToolPresets.All, tool => Assert.Equal(ToolDefinition.DefaultIcon, tool.Icon));
     }
 }

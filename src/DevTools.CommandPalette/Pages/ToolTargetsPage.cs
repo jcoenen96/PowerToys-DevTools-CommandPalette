@@ -1,6 +1,7 @@
 using DevTools.Domain.Projects;
 using DevTools.Domain.Tools;
 using DevTools.Infrastructure;
+using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace DevTools.CommandPalette.Pages;
 
@@ -25,6 +26,8 @@ internal sealed partial class ToolTargetsPage : LaunchTargetsPage
                 ? "Search projects, solutions, worktrees and branches"
                 : "Search projects, worktrees and branches";
     }
+
+    protected override IconInfo ProjectIcon => Icon;
 
     protected override string ProjectTitle(Project project) => $"{project.Name} in {_tool.DisplayName}";
 

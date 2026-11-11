@@ -20,6 +20,17 @@ public sealed class PageTests : IDisposable
         Assert.Equal(["Shop.slnx (main)", "Shop.slnx (feature/cart)"], shop.GetItems().Select(item => item.Title));
     }
 
+    [Fact]
+    public void Every_result_shows_the_icon_of_the_program_it_opens_with()
+    {
+        var page = new ToolTargetsPage(_test.Services, TestServices.FolderTool);
+        var program = page.Icon.Dark.Icon;
+        page.SearchText = "shop";
+
+        Assert.EndsWith("cmd.exe", program, StringComparison.OrdinalIgnoreCase);
+        Assert.All(page.GetItems(), item => Assert.Equal(program, item.Icon?.Dark.Icon));
+    }
+
     [Theory]
     [InlineData("shop")]
     [InlineData("cart")]

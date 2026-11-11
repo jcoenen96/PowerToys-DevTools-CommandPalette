@@ -130,6 +130,9 @@ every field explained. Saved changes apply right away.
 - `targetKind` is `Folder` (open the repository) or `Files` (open the files that match `filePatterns`, optionally
   with `fallBackToFolder`).
 - `arguments` placeholders: `{target}`, `{folder}`, `{repo}`, `{branch}`, `{name}`.
+- `icon` is optional. By default a tool, and every result it opens, shows the icon of the program that launches
+  it, also when that is a name on PATH, a `.cmd` launcher (VS Code's `code.cmd`, JetBrains Toolbox scripts) or an
+  app alias like `wt.exe`. Set a glyph, an emoji or a path to an `.exe`, `.ico` or `.png` to override it.
 - A new tool gets its own *Open in …* command (with its own hotkey and alias) and its own switch in the settings.
   When none of its `executables` is found, the command stays, with a warning, so its hotkey isn't lost.
 

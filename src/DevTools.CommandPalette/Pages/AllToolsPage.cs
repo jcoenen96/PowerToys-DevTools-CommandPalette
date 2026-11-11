@@ -21,13 +21,15 @@ internal sealed partial class AllToolsPage : LaunchTargetsPage
         PlaceholderText = "Search projects, solutions, worktrees, branches and tools";
     }
 
+    // A project here opens with any tool, so it keeps the repository icon; its entries show each tool's.
+    protected override IconInfo ProjectIcon => Icons.Repository;
+
     protected override string ProjectTitle(Project project) => $"Open {project.Name}";
 
     protected override IEnumerable<ToolDefinition> Tools(IReadOnlyList<ToolDefinition> installed) => installed;
 
     protected override void Decorate(ListItem item, LaunchTarget target)
     {
-        item.Icon = Icons.For(target.Tool, Services.Resolver);
         item.Subtitle = $"{target.Tool.DisplayName} · {target.Path}";
         item.Section = target.Tool.DisplayName;
     }
