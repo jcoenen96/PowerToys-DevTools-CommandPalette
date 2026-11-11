@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "DevTools.slnx",
+    "projects": [
+      "src/DevTools.Domain/DevTools.Domain.csproj",
+      "src/DevTools.Application/DevTools.Application.csproj",
+      "src/DevTools.Infrastructure/DevTools.Infrastructure.csproj",
+      "tests/DevTools.Application.Tests/DevTools.Application.Tests.csproj",
+      "tests/DevTools.Infrastructure.Tests/DevTools.Infrastructure.Tests.csproj"
+    ]
+  }
+}

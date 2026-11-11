@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "DevTools.CommandPalette (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "DevTools.CommandPalette (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

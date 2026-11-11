@@ -1,0 +1,4 @@
+{
+  "*.cs": "dotnet csharpier format",
+  "*.md": "markdownlint --fix"
+}

@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "csharpier.csharpier-vscode",
+    "DavidAnson.vscode-markdownlint",
+    "EditorConfig.EditorConfig",
+    "redhat.vscode-yaml",
+    "timonwong.shellcheck",
+    "github.vscode-github-actions"
+  ]
+}

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  megalinter:
+    name: MegaLinter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Betterleaks scans the history of the pushed commits.
+          fetch-depth: 0
+      - name: Lint and analyze everything
+        # Configured in .mega-linter.yml: CSharpier, the .NET analyzers, secret and vulnerability scans,
+        # and the YAML, Markdown, shell and workflow linters.
+        uses: oxsecurity/megalinter/flavors/dotnet@v9
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload MegaLinter reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: megalinter-reports
+          path: megalinter-reports/
+          if-no-files-found: ignore
+
+  core:
+    name: Domain, application and infrastructure tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Unit and integration tests
+        # The infrastructure tests create real git repositories and worktrees in a temp folder.
+        run: dotnet test DevTools.Core.slnf --logger "console;verbosity=normal"
+
+  extension:
+    name: Build extension (${{ matrix.platform }})
+    runs-on: windows-latest
+    needs: version
+    strategy:
+      matrix:
+        platform: [x64, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Build
+        run: >-
+          dotnet build src/DevTools.CommandPalette/DevTools.CommandPalette.csproj
+          -c Release -p:Platform=${{ matrix.platform }} -p:CI=true
+          -p:Version=${{ needs.version.outputs.semver }}
+
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.gitversion.outputs.semver }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GitVersion reads the commit messages since the start of the history.
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Work out the version (GitVersion.yml)
+        id: gitversion
+        run: |
+          dotnet tool restore
+          semver="$(dotnet tool run dotnet-gitversion /showvariable SemVer)"
+          echo "semver=$semver" >> "$GITHUB_OUTPUT"
+          echo "Version: $semver" >> "$GITHUB_STEP_SUMMARY"

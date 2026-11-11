@@ -1,0 +1,26 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+AppPackages/
+BundleArtifacts/
+
+# Node (pre-commit tooling)
+node_modules/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+# Rider: share only the required plugins and the format-on-save settings
+.idea/**
+!.idea/.idea.DevTools/
+!.idea/.idea.DevTools/.idea/
+!.idea/.idea.DevTools/.idea/externalDependencies.xml
+!.idea/.idea.DevTools/.idea/CSharpierPlugin.xml
+.DS_Store
+
+# MegaLinter output
+megalinter-reports/
