@@ -18,8 +18,10 @@ internal sealed partial class AllToolsPage : LaunchTargetsPage
         Name = "Open";
         Title = "All dev tools";
         Icon = Icons.Extension;
-        PlaceholderText = "Search solutions, repositories, worktrees, branches and tools";
+        PlaceholderText = "Search projects, solutions, worktrees, branches and tools";
     }
+
+    protected override string ProjectTitle(Project project) => $"Open {project.Name}";
 
     protected override IEnumerable<ToolDefinition> Tools(IReadOnlyList<ToolDefinition> installed) => installed;
 

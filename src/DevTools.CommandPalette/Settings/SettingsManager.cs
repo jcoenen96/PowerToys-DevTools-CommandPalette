@@ -64,10 +64,10 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
         "3"
     );
 
-    private readonly ToggleSetting _worktreesOnlyWhenSearching = new(
-        Key("worktreesOnlyWhenSearching"),
-        "Show worktrees only when searching",
-        "Tool pages first list only your clones; worktrees show up in the results once you start typing.",
+    private readonly ToggleSetting _groupByProject = new(
+        Key("groupByProject"),
+        "List projects first",
+        "Tool pages first list just your projects; choose one to see its clone and worktrees with their branch. Typing also finds branches and worktrees directly. Off lists every clone and worktree right away.",
         true
     );
 
@@ -91,7 +91,7 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
         Settings.Add(_worktreePathTemplate);
         Settings.Add(_scanDepth);
         Settings.Add(_fileSearchDepth);
-        Settings.Add(_worktreesOnlyWhenSearching);
+        Settings.Add(_groupByProject);
         Settings.Add(_gitExecutable);
 
         AddToolToggles(tools);
@@ -149,7 +149,7 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
                 : _worktreePathTemplate.Value.Trim(),
             ScanDepth = Number(_scanDepth.Value, fallback: 3, min: 1, max: 6),
             FileSearchDepth = Number(_fileSearchDepth.Value, fallback: 3, min: 0, max: 6),
-            ShowWorktreesOnlyWhenSearching = _worktreesOnlyWhenSearching.Value,
+            GroupByProject = _groupByProject.Value,
             GitExecutable = string.IsNullOrWhiteSpace(_gitExecutable.Value) ? "git" : _gitExecutable.Value.Trim(),
             DisabledToolIds = _toolToggles
                 .Where(pair => !pair.Value.Value)

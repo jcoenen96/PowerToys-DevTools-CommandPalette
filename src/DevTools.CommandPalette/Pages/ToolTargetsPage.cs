@@ -1,3 +1,4 @@
+using DevTools.Domain.Projects;
 using DevTools.Domain.Tools;
 using DevTools.Infrastructure;
 
@@ -21,9 +22,11 @@ internal sealed partial class ToolTargetsPage : LaunchTargetsPage
         Icon = Icons.For(tool, services.Resolver);
         PlaceholderText =
             tool.TargetKind == ToolTargetKind.Files
-                ? "Search solutions, repositories, worktrees and branches"
-                : "Search repositories, worktrees and branches";
+                ? "Search projects, solutions, worktrees and branches"
+                : "Search projects, worktrees and branches";
     }
+
+    protected override string ProjectTitle(Project project) => $"{project.Name} in {_tool.DisplayName}";
 
     protected override IEnumerable<ToolDefinition> Tools(IReadOnlyList<ToolDefinition> installed) =>
         (ToolDefinition[])[_tool];

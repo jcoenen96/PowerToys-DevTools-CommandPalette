@@ -40,6 +40,10 @@
     <PackageReference Include="Microsoft.CommandPalette.Extensions" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
     <PackageReference Include="Shmuelie.WinRTServer" />
+    <!-- Undeclared dependencies of the toolkit; see Directory.Packages.props. -->
+    <PackageReference Include="ToolGood.Words.Pinyin" />
+    <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="Microsoft.Win32.SystemEvents" />
 
     <!-- Needed to enable building an MSIX package -->
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX">
@@ -50,6 +54,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DevTools.Infrastructure\DevTools.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DevTools.CommandPalette.Tests" />
   </ItemGroup>
 
   <!--

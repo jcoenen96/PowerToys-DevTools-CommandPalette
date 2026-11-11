@@ -27,10 +27,10 @@ public sealed record DevToolsSettings
     public string WorktreePathTemplate { get; init; } = DefaultWorktreePathTemplate;
 
     /// <summary>
-    /// Tool pages list only clones until the user types; worktrees then show up in the results too. Keeps the first
-    /// list short when every repository has a handful of worktrees.
+    /// Tool pages first list just the project names; choosing one lists its clone (first) and worktrees with their
+    /// branch. Typing also finds those directly. Off lists every clone and worktree on the first page.
     /// </summary>
-    public bool ShowWorktreesOnlyWhenSearching { get; init; } = true;
+    public bool GroupByProject { get; init; } = true;
 
     /// <summary>The git executable; a bare name is looked up on PATH.</summary>
     public string GitExecutable { get; init; } = "git";

@@ -21,7 +21,9 @@ Open in Visual Studio
 - **One command per tool.** Every enabled tool gets its own top-level command, such as *Open in Visual Studio*,
   *Open in Rider* or *Open in Visual Studio Code*, so each can have **its own hotkey and alias** (see below). Tools
   you add in `tools.json` get one too; a tool you switch off has none.
-- **Clones first.** A tool's page opens on your clones only; worktrees join the results as soon as you type.
+- **Projects first.** A tool's page lists your projects by name. Choose one to see where it is checked out: the
+  clone first (usually on `main`), then its worktrees, each with its branch. Typing finds branches and worktrees
+  directly too.
 - **Or everything at once.** *All dev tools* shows every tool's results on one page, grouped per tool, and gets
   its own hotkey too.
 - **Solutions with their branch.** Visual Studio and Rider list the `.slnx`/`.sln` files of every repository and
@@ -83,7 +85,7 @@ Open Command Palette settings, then **Extensions > Dev tools**:
 | New worktree path | `{worktreeRoot}\{repo}\{branch}` | Layout for new worktrees; `feature/x` becomes `feature-x`. |
 | Repository search depth | 3 | Folder levels below each folder searched for repositories. |
 | Solution search depth | 3 | Folder levels inside a repository searched for solutions. |
-| Show worktrees only when searching | on | Tool pages list only clones until you type. |
+| List projects first | on | Tool pages list project names; choose one for its clone and worktrees. |
 | Git executable | `git` | The git to run. |
 | One switch per tool | on | Off removes the tool's command (and hotkey) and its Ctrl+K entries. |
 
@@ -162,6 +164,7 @@ src/
 tests/
   DevTools.Application.Tests/     unit tests with NSubstitute
   DevTools.Infrastructure.Tests/  against real git repositories and worktrees in a temp folder
+  DevTools.CommandPalette.Tests/  the extension's pages and search in process, and the installed extension over COM
 ```
 
 ## Develop
@@ -171,7 +174,15 @@ dotnet test DevTools.Core.slnf        # the cross-platform layers and their test
 ```
 
 The extension project itself needs Windows. Build, install and reload it in one go with
-`./scripts/Deploy-Extension.ps1` (see [Install](#install)).
+`./scripts/Deploy-Extension.ps1` (see [Install](#install)). Its integration tests run on Windows:
+
+```powershell
+dotnet test tests/DevTools.CommandPalette.Tests -p:Platform=x64                 # pages and search, in process
+./scripts/Deploy-Extension.ps1; $env:DEVTOOLS_PACKAGED_TESTS = '1'
+dotnet test tests/DevTools.CommandPalette.Tests -p:Platform=x64 --no-build      # also the installed extension
+```
+
+CI does the same on a Windows runner with PowerToys installed.
 
 ## Code style
 
@@ -211,7 +222,8 @@ npx markdownlint "**/*.md" --ignore node_modules
 
 [MegaLinter](https://megalinter.io) (`.mega-linter.yml`) runs CSharpier, the .NET analyzers, Betterleaks,
 secretlint, Trivy, editorconfig-checker, markdownlint, yamllint, jsonlint, actionlint and ShellCheck on every
-push. The core tests run on Linux and the extension is built for x64 and ARM64 on Windows.
+push. The core tests run on Linux, the extension is built for x64 and ARM64 on Windows, and its integration tests
+run on Windows against a PowerToys install.
 
 Pull request titles follow [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix(git):`,
 `feat!:`); [GitVersion](https://gitversion.net) derives the version from them when a PR is squash-merged.

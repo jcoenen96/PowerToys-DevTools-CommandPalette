@@ -1,6 +1,7 @@
 using DevTools.Application.Abstractions;
 using DevTools.Application.Git;
 using DevTools.Application.Repositories;
+using DevTools.Domain.Git;
 using DevTools.Domain.Settings;
 using DevTools.Infrastructure.FileSystem;
 using DevTools.Infrastructure.Git;
@@ -46,6 +47,19 @@ public sealed class GitIntegrationTests : IDisposable
         var removed = await _git.RemoveWorktreeAsync(shop, worktrees.Single(w => !w.IsMain));
         Assert.True(removed.Succeeded, removed.Summary);
         Assert.DoesNotContain(_repositories.GetRepositories(), r => r.IsWorktree);
+    }
+
+    [Fact]
+    public async Task A_worktree_is_grouped_with_its_clone_into_one_project()
+    {
+        var shop = _repositories.GetRepositories().Single();
+        Assert.True((await _git.AddWorktreeForNewBranchAsync(shop, "feature/cart")).Succeeded);
+
+        var project = Assert.Single(Domain.Projects.Project.Group(_repositories.GetRepositories()));
+
+        Assert.Equal("Shop", project.Name);
+        Assert.Equal([RepositoryKind.Clone, RepositoryKind.Worktree], project.Checkouts.Select(c => c.Kind));
+        Assert.Equal(["main", "feature/cart"], project.Checkouts.Select(c => c.Head.DisplayName));
     }
 
     [Fact]
