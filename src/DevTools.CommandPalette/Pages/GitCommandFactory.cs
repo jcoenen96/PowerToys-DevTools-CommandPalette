@@ -9,6 +9,10 @@ namespace DevTools.CommandPalette.Pages;
 
 internal static partial class GitCommandFactory
 {
+    /// <summary>The command for a palette item: a page with the output, or a background run.</summary>
+    public static ICommand For(DevToolsServices services, GitRepository repository, GitCommand command) =>
+        command.ShowsOutput ? new GitOutputPage(services, repository, command) : Create(services, repository, command);
+
     /// <summary>A git command that runs in the background; destructive ones ask first.</summary>
     public static ICommand Create(DevToolsServices services, GitRepository repository, GitCommand command)
     {

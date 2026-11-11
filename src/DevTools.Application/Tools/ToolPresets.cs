@@ -12,6 +12,12 @@ public static class ToolPresets
     private const string ToolboxScripts = "%LOCALAPPDATA%\\JetBrains\\Toolbox\\scripts";
     private const string ProgramFiles = "%ProgramFiles%";
 
+    /// <summary>Only the Visual Studio IDE editions, never SSMS or the Build Tools.</summary>
+    internal const string VisualStudioProducts =
+        "vswhere:-latest -prerelease -products Microsoft.VisualStudio.Product.Enterprise "
+        + "Microsoft.VisualStudio.Product.Professional Microsoft.VisualStudio.Product.Community "
+        + "-property productPath";
+
     public static IReadOnlyList<ToolDefinition> All { get; } =
     [
         new()
@@ -19,9 +25,11 @@ public static class ToolPresets
             Id = "visualstudio",
             DisplayName = "Visual Studio",
             // vswhere ships with every Visual Studio installer and finds the newest instance, previews included.
+            // The products are named on purpose: "-products *" also matches SQL Server Management Studio (built on
+            // the Visual Studio shell) and the Build Tools, so Ssms.exe could be picked, and with it its icon.
             Executables =
             [
-                "vswhere:-latest -prerelease -products * -property productPath",
+                VisualStudioProducts,
                 $"{ProgramFiles}\\Microsoft Visual Studio\\*\\*\\Common7\\IDE\\devenv.exe",
             ],
             TargetKind = ToolTargetKind.Files,
@@ -53,7 +61,6 @@ public static class ToolPresets
                 "code-insiders.cmd",
             ],
             TargetKind = ToolTargetKind.Folder,
-            ShowAsTopLevelCommand = false,
             IsPreset = true,
         },
         JetBrains("rider", "Rider", ["Rider", "JetBrains Rider*"], "rider64.exe", "rider.cmd", solutions: true),
@@ -83,10 +90,11 @@ public static class ToolPresets
         {
             Id = "terminal",
             DisplayName = "Windows Terminal",
+            // wt.exe is an app execution alias without an icon of its own, so the tool gets a glyph.
             Executables = ["wt.exe"],
+            Icon = "\uE756",
             Arguments = $"-d \"{ArgumentPlaceholders.Folder}\"",
             TargetKind = ToolTargetKind.Folder,
-            ShowAsTopLevelCommand = false,
             IsPreset = true,
         },
         new()
@@ -95,7 +103,6 @@ public static class ToolPresets
             DisplayName = "File Explorer",
             Executables = ["%WINDIR%\\explorer.exe"],
             TargetKind = ToolTargetKind.Folder,
-            ShowAsTopLevelCommand = false,
             IsPreset = true,
         },
     ];
@@ -126,9 +133,6 @@ public static class ToolPresets
             TargetKind = solutions ? ToolTargetKind.Files : ToolTargetKind.Folder,
             FilePatterns = solutions ? ["*.slnx", "*.sln"] : [],
             FallBackToFolder = solutions,
-            // The most common JetBrains IDEs show up top level; the rest stay reachable from every project's
-            // "Open with" menu, and tools.json can promote them.
-            ShowAsTopLevelCommand = id is "rider" or "intellij-idea" or "webstorm",
             IsPreset = true,
         };
 }

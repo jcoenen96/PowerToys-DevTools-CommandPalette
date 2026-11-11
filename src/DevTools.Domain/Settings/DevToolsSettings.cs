@@ -8,6 +8,12 @@ public sealed record DevToolsSettings
     /// <summary>Folders the repositories are cloned into.</summary>
     public IReadOnlyList<string> RepositoryRoots { get; init; } = [];
 
+    /// <summary>
+    /// Folders skipped while searching the repository and worktree folders, e.g. a worktree folder inside the
+    /// repository folder. A full path skips that folder; a bare name skips every folder with that name.
+    /// </summary>
+    public IReadOnlyList<string> ExcludedFolders { get; init; } = [];
+
     /// <summary>Folders the worktrees are created in. New worktrees go into the first one.</summary>
     public IReadOnlyList<string> WorktreeRoots { get; init; } = [];
 
@@ -19,6 +25,12 @@ public sealed record DevToolsSettings
 
     /// <summary>Where <c>git worktree add</c> puts a new worktree; placeholders: worktreeRoot, repo, branch.</summary>
     public string WorktreePathTemplate { get; init; } = DefaultWorktreePathTemplate;
+
+    /// <summary>
+    /// Tool pages list only clones until the user types; worktrees then show up in the results too. Keeps the first
+    /// list short when every repository has a handful of worktrees.
+    /// </summary>
+    public bool ShowWorktreesOnlyWhenSearching { get; init; } = true;
 
     /// <summary>The git executable; a bare name is looked up on PATH.</summary>
     public string GitExecutable { get; init; } = "git";

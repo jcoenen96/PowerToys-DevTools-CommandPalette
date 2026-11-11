@@ -16,6 +16,17 @@ public sealed class ToolService(IToolCatalog catalog, ISettingsProvider settings
     public IReadOnlyList<ToolDefinition> GetInstalledTools() =>
         [.. GetEnabledTools().Where(tool => !string.IsNullOrEmpty(resolver.Resolve(tool.Executables)))];
 
+    /// <summary>
+    /// The tools that get their own top-level command: every enabled tool that is installed, plus enabled tools from
+    /// tools.json that were not found, so a typo in their path shows up instead of the tool silently missing.
+    /// </summary>
+    public IReadOnlyList<(ToolDefinition Tool, bool IsInstalled)> GetCommandTools() =>
+        [
+            .. GetEnabledTools()
+                .Select(tool => (tool, !string.IsNullOrEmpty(resolver.Resolve(tool.Executables))))
+                .Where(entry => entry.Item2 || !entry.tool.IsPreset),
+        ];
+
     public ToolDefinition? Find(string id) =>
         catalog.GetTools().FirstOrDefault(tool => string.Equals(tool.Id, id, StringComparison.OrdinalIgnoreCase));
 }

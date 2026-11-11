@@ -37,6 +37,25 @@ public sealed class RepositoryScannerTests : IDisposable
     }
 
     [Fact]
+    public void A_worktree_folder_inside_the_repository_folder_can_be_excluded()
+    {
+        var shop = _temp.Repository("repos/Shop");
+        _temp.Repository("repos/worktrees/Shop/feature-a");
+        var worktrees = _temp.Combine("repos", "worktrees");
+        TempFolder.Git(shop, "worktree", "add", "-b", "feature/b", Path.Combine(worktrees, "Shop", "feature-b"));
+        var scanner = new FileSystemRepositoryScanner();
+
+        // The worktree folder is still searched as a root of its own, but not a second time below the repos folder.
+        var byPath = scanner.Scan([_temp.Combine("repos")], 3, [worktrees]);
+        var byName = scanner.Scan([_temp.Combine("repos")], 3, ["worktrees"]);
+        var asRoot = scanner.Scan([_temp.Combine("repos"), worktrees], 3, [worktrees]);
+
+        Assert.Equal([shop], byPath.Select(r => r.Path));
+        Assert.Equal([shop], byName.Select(r => r.Path));
+        Assert.Equal(3, asRoot.Count);
+    }
+
+    [Fact]
     public void Missing_roots_are_skipped() =>
         Assert.Empty(new FileSystemRepositoryScanner().Scan([_temp.Combine("does-not-exist")], 3));
 

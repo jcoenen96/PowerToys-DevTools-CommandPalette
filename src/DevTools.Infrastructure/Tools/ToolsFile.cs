@@ -26,8 +26,6 @@ internal sealed class ToolEntry
     public bool? FallBackToFolder { get; set; }
 
     public string? Icon { get; set; }
-
-    public bool? ShowAsTopLevelCommand { get; set; }
 }
 
 [JsonSourceGenerationOptions(

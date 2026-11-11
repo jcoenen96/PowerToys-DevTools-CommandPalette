@@ -9,7 +9,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 namespace DevTools.CommandPalette;
 
 /// <summary>
-/// The top-level commands: "All dev tools", one "Open in &lt;tool&gt;" per installed tool (each can get its own hotkey and alias in
+/// The top-level commands: "All dev tools", one "Open in &lt;tool&gt;" per enabled tool (each can get its own hotkey and alias in
 /// Command Palette), "Git repositories", and "Edit dev tools". The list follows the settings and tools.json.
 /// </summary>
 public sealed partial class DevToolsCommandsProvider : CommandProvider
@@ -38,7 +38,12 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
         Frozen = false;
 
         _settings.Changed += (_, _) => Rebuild();
-        _catalog.Changed += (_, _) => Rebuild();
+        _catalog.Changed += (_, _) =>
+        {
+            // A tool added to tools.json gets its own switch in the settings.
+            _settings.EnsureToolToggles(_catalog.GetTools());
+            Rebuild();
+        };
     }
 
     public override ICommandItem[] TopLevelCommands()
@@ -79,21 +84,29 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
             Id = CommandIds.EditTools,
         };
 
+        // Every enabled tool gets its own command, so it can have its own hotkey and alias. A preset that isn't
+        // installed is left out; a tool from tools.json stays, with a warning, so its command and hotkey don't vanish.
         var tools = _services
-            .Tools.GetInstalledTools()
-            .Where(tool => tool.ShowAsTopLevelCommand)
-            .Select(tool =>
-                (ICommandItem)
-                    new CommandItem(new ToolTargetsPage(_services, tool))
-                    {
-                        Title = $"Open in {tool.DisplayName}",
-                        Subtitle =
-                            tool.TargetKind == Domain.Tools.ToolTargetKind.Files
-                                ? "Solutions in your repositories and worktrees, with their branch"
-                                : "Your repositories and worktrees, with their branch",
-                        MoreCommands = [settingsItem],
-                    }
-            );
+            .Tools.GetCommandTools()
+            .Select(entry =>
+            {
+                var item = new CommandItem(new ToolTargetsPage(_services, entry.Tool))
+                {
+                    Title = $"Open in {entry.Tool.DisplayName}",
+                    Subtitle =
+                        !entry.IsInstalled ? "Not found: check its executables in tools.json"
+                        : entry.Tool.TargetKind == Domain.Tools.ToolTargetKind.Files
+                            ? "Solutions in your repositories and worktrees, with their branch"
+                        : "Your repositories and worktrees, with their branch",
+                    MoreCommands = [settingsItem],
+                };
+                if (!entry.IsInstalled)
+                {
+                    item.Icon = Icons.Warning;
+                }
+
+                return (ICommandItem)item;
+            });
 
         return
         [

@@ -34,8 +34,5 @@ public sealed record ToolDefinition
     /// <summary>A Segoe Fluent icon glyph, emoji, or path to an image or executable.</summary>
     public string Icon { get; init; } = DefaultIcon;
 
-    /// <summary>Whether the tool shows up as its own top-level command (and so can get its own hotkey).</summary>
-    public bool ShowAsTopLevelCommand { get; init; } = true;
-
     public bool IsPreset { get; init; }
 }

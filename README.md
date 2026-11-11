@@ -18,8 +18,10 @@ Open in Visual Studio
 
 ## What it does
 
-- **One command per tool.** Every installed tool gets its own top-level command, such as *Open in Visual Studio*,
-  *Open in Rider* or *Open in Visual Studio Code*, so each can have **its own hotkey and alias** (see below).
+- **One command per tool.** Every enabled tool gets its own top-level command, such as *Open in Visual Studio*,
+  *Open in Rider* or *Open in Visual Studio Code*, so each can have **its own hotkey and alias** (see below). Tools
+  you add in `tools.json` get one too; a tool you switch off has none.
+- **Clones first.** A tool's page opens on your clones only; worktrees join the results as soon as you type.
 - **Or everything at once.** *All dev tools* shows every tool's results on one page, grouped per tool, and gets
   its own hotkey too.
 - **Solutions with their branch.** Visual Studio and Rider list the `.slnx`/`.sln` files of every repository and
@@ -27,9 +29,11 @@ Open in Visual Studio
   with both `Shop.slnx` and `Shop.sln` shows the `.slnx`. Branch names come straight from `.git`, so the list is
   instant.
 - **Your folders.** You set where your repositories are cloned and where your worktrees live; both are searched.
+  Excluded folders are skipped, so your worktree folder can sit inside your repository folder.
 - **Open with anything.** Ctrl+K on any item opens the same solution or folder in another tool, opens File
   Explorer or Windows Terminal there, copies the path or branch, or jumps to its git commands.
-- **Git from the palette.** *Git repositories* lists every clone and worktree. Choose one to see its status and:
+- **Git from the palette.** *Git repositories* lists every clone and worktree. Choose one, or press Ctrl+K on it, for
+  its git commands, listed before *Open in…* and the rest:
   - switch branch (remote branches get a local tracking branch), or create a new branch;
   - create a worktree for an existing branch, or a new branch in a new worktree, in your worktree folder;
   - list and remove worktrees, prune stale ones;
@@ -73,12 +77,14 @@ Open Command Palette settings, then **Extensions > Dev tools**:
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Repository folders | `%USERPROFILE%\source\repos` | Where your repositories are cloned; one folder per line. |
+| Excluded folders | none | Skipped by the repository search; a full path or a folder name, one per line. |
 | Worktree folders | `%USERPROFILE%\source\worktrees` | Where your worktrees live; new worktrees go into the first. |
 | New worktree path | `{worktreeRoot}\{repo}\{branch}` | Layout for new worktrees; `feature/x` becomes `feature-x`. |
 | Repository search depth | 3 | Folder levels below each folder searched for repositories. |
 | Solution search depth | 3 | Folder levels inside a repository searched for solutions. |
+| Show worktrees only when searching | on | Tool pages list only clones until you type. |
 | Git executable | `git` | The git to run. |
-| One switch per tool | on | Turn tools you don't use off. |
+| One switch per tool | on | Off removes the tool's command (and hotkey) and its Ctrl+K entries. |
 
 ### A hotkey per tool
 
@@ -121,8 +127,8 @@ every field explained. Saved changes apply right away.
 - `targetKind` is `Folder` (open the repository) or `Files` (open the files that match `filePatterns`, optionally
   with `fallBackToFolder`).
 - `arguments` placeholders: `{target}`, `{folder}`, `{repo}`, `{branch}`, `{name}`.
-- `showAsTopLevelCommand` puts a tool on the home page (and so lets it have a hotkey). Windows Terminal, File
-  Explorer, VS Code Insiders and the less common JetBrains IDEs are off by default but always in the Ctrl+K menu.
+- A new tool gets its own *Open in …* command (with its own hotkey and alias) and its own switch in the settings.
+  When none of its `executables` is found, the command stays, with a warning, so its hotkey isn't lost.
 
 ## Architecture
 

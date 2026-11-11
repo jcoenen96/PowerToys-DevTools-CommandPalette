@@ -28,7 +28,29 @@ public class ServiceTests
 
         _scanner
             .Received(1)
-            .Scan(Arg.Is<IReadOnlyList<string>>(roots => roots.SequenceEqual(new[] { "/repos", "/worktrees" })), 3);
+            .Scan(
+                Arg.Is<IReadOnlyList<string>>(roots => roots.SequenceEqual(new[] { "/repos", "/worktrees" })),
+                3,
+                Arg.Any<IReadOnlyCollection<string>>()
+            );
+    }
+
+    [Fact]
+    public void Excluded_folders_are_passed_to_the_scan()
+    {
+        _settings.Set(_settings.Current with { ExcludedFolders = ["", " /repos/worktrees ", "node_modules"] });
+
+        new RepositoryService(_scanner, _settings, _time).GetRepositories();
+
+        _scanner
+            .Received(1)
+            .Scan(
+                Arg.Any<IReadOnlyList<string>>(),
+                3,
+                Arg.Is<IReadOnlyCollection<string>>(excluded =>
+                    excluded.SequenceEqual(new[] { "/repos/worktrees", "node_modules" })
+                )
+            );
     }
 
     [Fact]
@@ -150,5 +172,25 @@ public class ServiceTests
         var tools = new ToolService(catalog, _settings, Substitute.For<IExecutableResolver>()).GetEnabledTools();
 
         Assert.Equal([TestData.VisualStudio], tools);
+    }
+
+    [Fact]
+    public void Every_enabled_tool_gets_a_command_but_a_missing_preset_does_not()
+    {
+        var catalog = Substitute.For<IToolCatalog>();
+        var resolver = Substitute.For<IExecutableResolver>();
+        var custom = new Domain.Tools.ToolDefinition
+        {
+            Id = "sublime",
+            DisplayName = "Sublime Text",
+            Executables = ["subl.exe"],
+        };
+        var missingPreset = TestData.Code with { Id = "missing", Executables = ["missing.exe"], IsPreset = true };
+        catalog.GetTools().Returns([TestData.VisualStudio, missingPreset, custom]);
+        resolver.Resolve(TestData.VisualStudio.Executables).Returns("C:/VS/devenv.exe");
+
+        var tools = new ToolService(catalog, _settings, resolver).GetCommandTools();
+
+        Assert.Equal([(TestData.VisualStudio, true), (custom, false)], tools);
     }
 }

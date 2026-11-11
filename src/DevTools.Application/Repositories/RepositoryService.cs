@@ -45,7 +45,15 @@ public sealed class RepositoryService
             .ToList();
 
         var repositories = _scanner
-            .Scan(roots, settings.ScanDepth)
+            .Scan(
+                roots,
+                settings.ScanDepth,
+                [
+                    .. settings
+                        .ExcludedFolders.Where(folder => !string.IsNullOrWhiteSpace(folder))
+                        .Select(folder => Environment.ExpandEnvironmentVariables(folder.Trim())),
+                ]
+            )
             .DistinctBy(repository => Path.GetFullPath(repository.Path), StringComparer.OrdinalIgnoreCase)
             .OrderBy(repository => repository.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(repository => repository.Kind)

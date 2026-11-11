@@ -9,7 +9,7 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace DevTools.CommandPalette.Pages;
 
-/// <summary>Everything for one repository or worktree: open it in a tool, branches, worktrees and git commands.</summary>
+/// <summary>Everything for one repository or worktree: git commands first, then branches, worktrees and opening it in a tool.</summary>
 internal sealed partial class RepositoryPage : ListPage
 {
     private readonly DevToolsServices _services;
@@ -30,7 +30,7 @@ internal sealed partial class RepositoryPage : ListPage
         IsLoading = true;
         try
         {
-            return [StatusItem(), .. ToolItems(), .. BranchItems(), .. CommandItems()];
+            return [StatusItem(), .. CommandItems(), .. BranchItems(), .. ToolItems()];
         }
         finally
         {
@@ -103,18 +103,12 @@ internal sealed partial class RepositoryPage : ListPage
     private IEnumerable<ListItem> CommandItems() =>
         GitCommands
             .All.Where(command => command != GitCommands.Status)
-            .Select(command =>
+            .Select(command => new ListItem(GitCommandFactory.For(_services, _repository, command))
             {
-                ICommand invokable = command.ShowsOutput
-                    ? new GitOutputPage(_services, _repository, command)
-                    : GitCommandFactory.Create(_services, _repository, command);
-                return new ListItem(invokable)
-                {
-                    Title = command.Title,
-                    Subtitle = command.Description,
-                    Icon = new IconInfo(command.Icon),
-                    Section = "Git",
-                };
+                Title = command.Title,
+                Subtitle = command.Description,
+                Icon = new IconInfo(command.Icon),
+                Section = "Git",
             });
 
     private static ListItem Item(ICommand command, string title, string subtitle, IconInfo icon) =>

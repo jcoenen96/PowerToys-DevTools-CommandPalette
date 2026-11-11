@@ -18,7 +18,8 @@ public sealed class JsonToolCatalog : IToolCatalog, IDisposable
           // An entry with the id of a preset only changes what it sets, e.g. a Rider installed elsewhere:
           //   { "id": "rider", "executables": ["D:\\Tools\\Rider\\bin\\rider64.exe"] }
           //
-          // Any other id adds a tool. Fields:
+          // Any other id adds a tool, with its own "Open in ..." command (so it can get a hotkey) and its own switch
+          // on the Dev tools settings page. Fields:
           //   id                     stable id; Command Palette keeps the tool's hotkey and alias under it
           //   displayName            the name in the palette
           //   executables            tried in order: a path (%VARIABLES% and * wildcards allowed, newest match wins),
@@ -28,7 +29,6 @@ public sealed class JsonToolCatalog : IToolCatalog, IDisposable
           //   filePatterns           e.g. ["*.slnx", "*.sln"]; earlier patterns win when a folder has both
           //   fallBackToFolder       with "Files": offer the folder when a repository has no matching file
           //   icon                   a Segoe Fluent Icons glyph, an emoji, or a path to an .exe, .ico or .png
-          //   showAsTopLevelCommand  list the tool on the Command Palette home page, so it can get its own hotkey
           //
           // Preset ids: visualstudio, vscode, vscode-insiders, rider, intellij-idea, webstorm, pycharm, goland,
           // clion, rustrover, datagrip, orca, terminal, explorer.
@@ -160,7 +160,6 @@ public sealed class JsonToolCatalog : IToolCatalog, IDisposable
             FilePatterns = entry.FilePatterns ?? tool.FilePatterns,
             FallBackToFolder = entry.FallBackToFolder ?? tool.FallBackToFolder,
             Icon = string.IsNullOrWhiteSpace(entry.Icon) ? tool.Icon : entry.Icon,
-            ShowAsTopLevelCommand = entry.ShowAsTopLevelCommand ?? tool.ShowAsTopLevelCommand,
         };
 
     /// <summary>Reads the file while an editor may still hold it open.</summary>
