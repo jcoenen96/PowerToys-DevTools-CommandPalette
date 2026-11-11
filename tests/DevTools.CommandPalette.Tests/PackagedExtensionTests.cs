@@ -44,9 +44,8 @@ public sealed partial class PackagedExtensionTests
         try
         {
             // GetProvider returns a plain IInspectable across the process boundary; ask it for the interface.
-            var provider = Assert
-                .IsAssignableFrom<IInspectable>(extension.GetProvider(ProviderType.Commands))
-                .As<ICommandProvider>();
+            var inspectable = Assert.IsAssignableFrom<IInspectable>(extension.GetProvider(ProviderType.Commands));
+            var provider = MarshalInterface<ICommandProvider>.FromAbi(inspectable.ThisPtr);
             var commands = provider.TopLevelCommands();
             Assert.Contains(commands, command => command.Command.Id == "devtools.all");
 
