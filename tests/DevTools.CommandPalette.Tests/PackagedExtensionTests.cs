@@ -43,7 +43,10 @@ public sealed partial class PackagedExtensionTests
         var extension = Activate();
         try
         {
-            var provider = Assert.IsAssignableFrom<ICommandProvider>(extension.GetProvider(ProviderType.Commands));
+            // GetProvider returns a plain IInspectable across the process boundary; ask it for the interface.
+            var provider = Assert
+                .IsAssignableFrom<IInspectable>(extension.GetProvider(ProviderType.Commands))
+                .As<ICommandProvider>();
             var commands = provider.TopLevelCommands();
             Assert.Contains(commands, command => command.Command.Id == "devtools.all");
 
