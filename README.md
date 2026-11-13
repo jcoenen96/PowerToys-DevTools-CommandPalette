@@ -41,7 +41,7 @@ Open in Visual Studio
   - list and remove worktrees, prune stale ones;
   - fetch, pull (fast-forward or rebase), push (sets the upstream for new branches), stash and pop, status, log,
     and discard all changes (asks first).
-- **A repository hub, like [RepoM](https://github.com/coenm/RepoM).** *Git repositories* shows every clone and
+- **A repository hub.** *Git repositories* shows every clone and
   worktree with its branch, how far it is ahead of or behind its upstream (`↑2 ↓1`) and how many files changed.
   - **Pin** a repository (Ctrl+K > *Pin*) to list it first everywhere; pins are kept across restarts.
   - **Ignore** a repository to hide it from every list; *Ignored repositories* at the bottom of *Git repositories*
@@ -208,21 +208,6 @@ matches either side.
 
 A word that is a tag finds the repositories with that tag, so `work` finds the `work` repositories as well as names
 with "work" in them. Quote values with spaces: `path:"my repos"`.
-
-### Coming from RepoM
-
-| RepoM | Here |
-| --- | --- |
-| The hub with branch and status | *Git repositories* (and every tool page for the branch) |
-| `RepositoryActionsV2.yaml` actions | Tools in `tools.json`, actions in `repositories.json`, and the built-in git commands |
-| `browse-repository`, `url`, `command`, `executable`, `clipboard-copy`, `foreach` | Browse remote, and `url`, `command`, `copy` and `forEachFile` actions |
-| `git-checkout`, `git-fetch`, `git-pull`, `git-push` | Switch branch, Fetch, Pull, Push (and more) |
-| `pin-repository`, `ignore-repository` | Pin / Unpin and Ignore in Ctrl+K; pins are kept across restarts |
-| `TagsV2.yaml` and tag search | `tags` in `repositories.json`, `tag:` filters and the filter list |
-| Lucene query parser, quick filters | Search filters, the filter list and saved searches |
-| Orderings (name, last opened, usage, pinned) | *Sort repositories by*, with pinned first |
-| Auto fetch, prune on fetch | *Fetch in the background*, *Prune when fetching in the background* |
-| Scriban templates and predicates | Placeholders and `when` conditions (no scripting) |
 
 ## Architecture
 

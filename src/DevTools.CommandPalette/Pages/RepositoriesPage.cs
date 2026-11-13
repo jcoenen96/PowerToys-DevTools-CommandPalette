@@ -98,7 +98,7 @@ internal sealed partial class RepositoriesPage : DynamicListPage
                     ? [.. items.Select(pair => pair.Item)]
                     :
                     [
-                        // A word that is a tag finds the repositories with that tag, like in RepoM.
+                        // A word that is a tag finds the repositories with that tag.
                         .. items.Where(pair => search.FreeTextMatchesTag(pair.Entry)).Select(pair => pair.Item),
                         .. ListHelpers.FilterList(
                             items.Where(pair => !search.FreeTextMatchesTag(pair.Entry)).Select(pair => pair.Item),
@@ -236,7 +236,7 @@ internal sealed partial class RepositoriesPage : DynamicListPage
 }
 
 /// <summary>
-/// The quick filters next to the search box, like RepoM's: everything, pinned, with changes, ahead, behind,
+/// The quick filters next to the search box: everything, pinned, with changes, ahead, behind,
 /// worktrees, one per tag, and the saved searches. A filter's id is its query.
 /// </summary>
 internal sealed partial class RepositoryFilters : Filters

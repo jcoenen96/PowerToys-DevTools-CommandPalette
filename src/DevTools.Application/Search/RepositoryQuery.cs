@@ -5,7 +5,7 @@ using DevTools.Application.Repositories;
 namespace DevTools.Application.Search;
 
 /// <summary>
-/// A search with filters, like RepoM's query syntax:
+/// A search with filters:
 /// <list type="bullet">
 /// <item><c>tag:work</c>, <c>name:shop*</c>, <c>branch:feature/*</c>, <c>path:work</c>, <c>remote:github.com</c></item>
 /// <item><c>is:pinned</c>, <c>is:worktree</c>, <c>is:clone</c>, <c>is:detached</c>, <c>is:ahead</c>, <c>is:behind</c>,

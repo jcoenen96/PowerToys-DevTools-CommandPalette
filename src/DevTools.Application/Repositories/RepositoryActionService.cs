@@ -16,8 +16,8 @@ public sealed record ResolvedRepositoryAction(
 );
 
 /// <summary>
-/// The custom actions of a repository (RepoM's <c>url</c>, <c>command</c>, <c>executable</c>, <c>clipboard-copy</c>
-/// and <c>foreach</c> actions): which apply, with their text filled in, and running them.
+/// The custom actions of a repository (open a URL, start a command, copy text, optionally once per matching file):
+/// which apply, with their text filled in, and running them.
 /// </summary>
 public sealed class RepositoryActionService(
     IRepositoryConfiguration configuration,

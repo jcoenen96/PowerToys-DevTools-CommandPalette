@@ -4,8 +4,8 @@ using DevTools.Domain.Repositories;
 namespace DevTools.Application.Repositories;
 
 /// <summary>
-/// Pinned and ignored repositories, how often each is used, and saved searches. Unlike RepoM, pins survive a
-/// restart: they are saved with the rest of the state.
+/// Pinned and ignored repositories, how often each is used, and saved searches. Pins survive a restart:
+/// they are saved with the rest of the state.
 /// </summary>
 public sealed class RepositoryPreferences
 {

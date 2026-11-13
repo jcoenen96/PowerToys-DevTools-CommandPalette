@@ -6,7 +6,7 @@ namespace DevTools.Application.Git;
 
 /// <summary>
 /// Fetches every repository in the background at the interval from the settings (off by default), so ahead and
-/// behind counts stay current, like RepoM's auto fetch. A clone and its worktrees share their remotes, so each
+/// behind counts stay current. A clone and its worktrees share their remotes, so each
 /// project is fetched once.
 /// </summary>
 public sealed class AutoFetchService : IDisposable
