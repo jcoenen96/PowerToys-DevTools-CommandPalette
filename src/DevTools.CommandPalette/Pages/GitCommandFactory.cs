@@ -22,6 +22,7 @@ internal static partial class GitCommandFactory
             $"{command.Description} in {repository.Name}…",
             async () =>
             {
+                services.Preferences.RecordUse(repository.Path);
                 var result = await services.Git.RunAsync(repository, command).ConfigureAwait(false);
                 var summary = result.Summary;
                 return (
