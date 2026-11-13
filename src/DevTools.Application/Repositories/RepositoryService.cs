@@ -14,19 +14,43 @@ public sealed class RepositoryService
     private readonly IRepositoryScanner _scanner;
     private readonly ISettingsProvider _settings;
     private readonly TimeProvider _time;
+    private readonly RepositoryPreferences? _preferences;
     private readonly Lock _lock = new();
     private IReadOnlyList<GitRepository>? _cached;
     private DateTimeOffset _cachedAt;
 
-    public RepositoryService(IRepositoryScanner scanner, ISettingsProvider settings, TimeProvider time)
+    /// <param name="scanner">Finds the repositories on disk.</param>
+    /// <param name="settings">The folders to search.</param>
+    /// <param name="time">The clock the cache expires by.</param>
+    /// <param name="preferences">When given, ignored repositories are left out.</param>
+    public RepositoryService(
+        IRepositoryScanner scanner,
+        ISettingsProvider settings,
+        TimeProvider time,
+        RepositoryPreferences? preferences = null
+    )
     {
         _scanner = scanner;
         _settings = settings;
         _time = time;
+        _preferences = preferences;
         _settings.Changed += (_, _) => Invalidate();
     }
 
+    /// <summary>Raised when the cached scan is thrown away, e.g. after a checkout; lists should reload.</summary>
+    public event EventHandler? Invalidated;
+
+    /// <summary>The clones and worktrees, without the ignored ones.</summary>
     public IReadOnlyList<GitRepository> GetRepositories(bool refresh = false)
+    {
+        var all = GetAllRepositories(refresh);
+        return _preferences is { } preferences && preferences.IgnoredPaths.Count > 0
+            ? [.. all.Where(repository => !preferences.IsIgnored(repository.Path))]
+            : all;
+    }
+
+    /// <summary>The clones and worktrees, the ignored ones included.</summary>
+    public IReadOnlyList<GitRepository> GetAllRepositories(bool refresh = false)
     {
         lock (_lock)
         {
@@ -76,5 +100,7 @@ public sealed class RepositoryService
         {
             _cached = null;
         }
+
+        Invalidated?.Invoke(this, EventArgs.Empty);
     }
 }

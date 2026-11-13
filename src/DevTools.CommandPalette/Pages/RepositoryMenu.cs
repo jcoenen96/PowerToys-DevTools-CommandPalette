@@ -48,6 +48,12 @@ internal static class RepositoryMenu
             items.Add(new CommandContextItem(new RepositoryPage(services, repository)) { Title = "Git commands" });
         }
 
+        // Custom actions, the remote on the web, then pin and ignore.
+        items.AddRange(RepositoryExtras.ActionItems(services, repository).Select(RepositoryExtras.ToContextItem));
+        items.AddRange(RepositoryExtras.RemoteItems(repository).Select(RepositoryExtras.ToContextItem));
+        var manage = RepositoryExtras.ManageItems(services, repository, refresh).ToArray();
+        items.Add(RepositoryExtras.ToContextItem(manage[0]));
+
         items.Add(
             new CommandContextItem(new CopyTextCommand(current?.Path ?? repository.Path) { Name = "Copy path" })
             {
@@ -61,6 +67,7 @@ internal static class RepositoryMenu
             }
         );
         items.Add(new CommandContextItem(new RefreshCommand(refresh)));
+        items.AddRange(manage.Skip(1).Select(RepositoryExtras.ToContextItem));
         return [.. items];
     }
 

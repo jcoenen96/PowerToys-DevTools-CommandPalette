@@ -2,6 +2,7 @@ using DevTools.Application.Abstractions;
 using DevTools.Domain.Settings;
 using DevTools.Domain.Tools;
 using DevTools.Infrastructure;
+using DevTools.Infrastructure.Repositories;
 using DevTools.Infrastructure.Tests;
 
 namespace DevTools.CommandPalette.Tests;
@@ -67,10 +68,14 @@ internal sealed class TestServices : IDisposable
                 GroupByProject = groupByProject,
             }
         );
-        Services = new DevToolsServices(Settings, new StaticCatalog(_temp.Combine("tools.json")));
+        TempFolder.Git(shop, "remote", "add", "origin", "https://github.com/me/shop.git");
+        Services = new DevToolsServices(Settings, new StaticCatalog(_temp.Combine("tools.json")), Configuration);
     }
 
     public StaticSettings Settings { get; }
+
+    /// <summary>Tags, actions and searches, as repositories.json would give them.</summary>
+    public EmptyRepositoryConfiguration Configuration { get; } = new();
 
     public DevToolsServices Services { get; }
 

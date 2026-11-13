@@ -9,7 +9,11 @@ namespace DevTools.Infrastructure.Git;
 internal static class GitHeadReader
 {
     /// <summary>The result of reading a working folder's <c>.git</c>.</summary>
-    public sealed record GitFolder(string GitDirectory, GitHead Head, RepositoryKind Kind, string? MainRepositoryPath);
+    public sealed record GitFolder(string GitDirectory, GitHead Head, RepositoryKind Kind, string? MainRepositoryPath)
+    {
+        /// <summary>The remotes from the git config; a worktree shares them with its main repository.</summary>
+        public IReadOnlyList<GitRemote> Remotes { get; init; } = [];
+    }
 
     /// <returns>The git folder of <paramref name="workingDirectory"/>, or <see langword="null"/> when it is not a repository.</returns>
     public static GitFolder? Read(string workingDirectory)
@@ -47,10 +51,16 @@ internal static class GitHeadReader
             var main = string.Equals(Path.GetFileName(common), ".git", StringComparison.OrdinalIgnoreCase)
                 ? Path.GetDirectoryName(common)
                 : null;
-            return new GitFolder(gitDirectory, head, RepositoryKind.Worktree, main);
+            return new GitFolder(gitDirectory, head, RepositoryKind.Worktree, main)
+            {
+                Remotes = GitConfigReader.ReadRemotes(common),
+            };
         }
 
-        return new GitFolder(gitDirectory, head, RepositoryKind.Clone, null);
+        return new GitFolder(gitDirectory, head, RepositoryKind.Clone, null)
+        {
+            Remotes = GitConfigReader.ReadRemotes(gitDirectory),
+        };
     }
 
     internal static GitHead ReadHead(string gitDirectory)

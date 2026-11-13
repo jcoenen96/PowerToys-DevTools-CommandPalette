@@ -5,6 +5,7 @@ using DevTools.Application.Tools;
 using DevTools.Infrastructure.FileSystem;
 using DevTools.Infrastructure.Git;
 using DevTools.Infrastructure.Processes;
+using DevTools.Infrastructure.Repositories;
 using DevTools.Infrastructure.Tools;
 
 namespace DevTools.Infrastructure;
@@ -15,11 +16,24 @@ namespace DevTools.Infrastructure;
 /// </summary>
 public sealed class DevToolsServices : IDisposable
 {
-    public DevToolsServices(ISettingsProvider settings, IToolCatalog catalog)
+    /// <param name="settings">The settings page.</param>
+    /// <param name="catalog">The tools.</param>
+    /// <param name="repositoryConfiguration">Tags, actions and searches; none when not given.</param>
+    /// <param name="stateStore">Where pins, ignored repositories and usage are kept; in memory when not given.</param>
+    /// <param name="time">The clock; the system clock when not given.</param>
+    public DevToolsServices(
+        ISettingsProvider settings,
+        IToolCatalog catalog,
+        IRepositoryConfiguration? repositoryConfiguration = null,
+        IRepositoryStateStore? stateStore = null,
+        TimeProvider? time = null
+    )
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(catalog);
-        var time = TimeProvider.System;
+        time ??= TimeProvider.System;
+        RepositoryConfiguration = repositoryConfiguration ?? new EmptyRepositoryConfiguration();
+        Preferences = new RepositoryPreferences(stateStore ?? new InMemoryRepositoryStateStore(), time);
 
         Settings = settings;
         Catalog = catalog;
@@ -31,13 +45,33 @@ public sealed class DevToolsServices : IDisposable
         };
         Resolver = resolver;
 
-        Repositories = new RepositoryService(new FileSystemRepositoryScanner(), settings, time);
+        var files = new FileSystemFileFinder();
+        Repositories = new RepositoryService(new FileSystemRepositoryScanner(), settings, time, Preferences);
         Tools = new ToolService(catalog, settings, resolver);
-        Targets = new LaunchTargetService(Repositories, new FileSystemFileFinder(), settings);
+        Targets = new LaunchTargetService(Repositories, files, settings);
         Launcher = new ToolLauncher(resolver, new ProcessLauncher());
         Shell = new ProcessLauncher();
         Git = new GitService(new GitProcessRunner(settings), settings, Repositories);
+        RepositoryCatalog = new RepositoryCatalog(Repositories, Preferences, RepositoryConfiguration, settings);
+        Status = new GitStatusCache(Git, time);
+        AutoFetch = new AutoFetchService(Git, Repositories, settings, time);
+        Actions = new RepositoryActionService(RepositoryConfiguration, files, settings, resolver, Shell);
     }
+
+    /// <summary>Tags, custom actions and saved searches from repositories.json.</summary>
+    public IRepositoryConfiguration RepositoryConfiguration { get; }
+
+    /// <summary>Pinned and ignored repositories, usage and saved searches.</summary>
+    public RepositoryPreferences Preferences { get; }
+
+    /// <summary>The repositories with their tags and pins, sorted as the settings say.</summary>
+    public RepositoryCatalog RepositoryCatalog { get; }
+
+    public GitStatusCache Status { get; }
+
+    public AutoFetchService AutoFetch { get; }
+
+    public RepositoryActionService Actions { get; }
 
     public ISettingsProvider Settings { get; }
 
@@ -57,5 +91,10 @@ public sealed class DevToolsServices : IDisposable
 
     public GitService Git { get; }
 
-    public void Dispose() => (Catalog as IDisposable)?.Dispose();
+    public void Dispose()
+    {
+        AutoFetch.Dispose();
+        (Catalog as IDisposable)?.Dispose();
+        (RepositoryConfiguration as IDisposable)?.Dispose();
+    }
 }

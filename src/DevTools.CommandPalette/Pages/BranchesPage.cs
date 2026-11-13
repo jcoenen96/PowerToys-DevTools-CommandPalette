@@ -80,6 +80,7 @@ internal sealed partial class BranchesPage : ListPage
                 $"Switching {_repository.Name} to {branch.LocalName}…",
                 async () =>
                 {
+                    _services.Preferences.RecordUse(_repository.Path);
                     var result = await _services.Git.CheckoutAsync(_repository, branch).ConfigureAwait(false);
                     return (
                         result.Succeeded,

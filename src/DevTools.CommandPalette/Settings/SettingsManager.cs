@@ -1,4 +1,5 @@
 using DevTools.Application.Abstractions;
+using DevTools.Domain.Repositories;
 using DevTools.Domain.Settings;
 using DevTools.Domain.Tools;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -71,6 +72,44 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
         true
     );
 
+    private readonly ChoiceSetSetting _order = new(
+        Key("order"),
+        "Sort repositories by",
+        "The order of repositories and projects in every list. Pinned ones always come first.",
+        [
+            new ChoiceSetSetting.Choice("Name", nameof(RepositoryOrder.Name)),
+            new ChoiceSetSetting.Choice("Recently used", nameof(RepositoryOrder.RecentlyUsed)),
+            new ChoiceSetSetting.Choice("Most used (last 30 days)", nameof(RepositoryOrder.MostUsed)),
+        ]
+    );
+
+    private readonly ToggleSetting _showGitStatus = new(
+        Key("showGitStatus"),
+        "Show git status",
+        "Git repositories shows how far each repository is ahead of or behind its upstream, and how many files changed. Runs git status in the background.",
+        true
+    );
+
+    private readonly ChoiceSetSetting _autoFetch = new(
+        Key("autoFetch"),
+        "Fetch in the background",
+        "Runs git fetch in every repository with a remote while Command Palette runs, so the ahead and behind counts stay current.",
+        [
+            new ChoiceSetSetting.Choice("Off", "0"),
+            new ChoiceSetSetting.Choice("Every 5 minutes", "5"),
+            new ChoiceSetSetting.Choice("Every 15 minutes", "15"),
+            new ChoiceSetSetting.Choice("Every 30 minutes", "30"),
+            new ChoiceSetSetting.Choice("Every hour", "60"),
+        ]
+    );
+
+    private readonly ToggleSetting _pruneOnFetch = new(
+        Key("pruneOnFetch"),
+        "Prune when fetching in the background",
+        "Background fetches also remove remote branches that were deleted on the remote (git fetch --prune).",
+        true
+    );
+
     private readonly TextSetting _gitExecutable = new(
         Key("gitExecutable"),
         "Git executable",
@@ -92,6 +131,10 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
         Settings.Add(_scanDepth);
         Settings.Add(_fileSearchDepth);
         Settings.Add(_groupByProject);
+        Settings.Add(_order);
+        Settings.Add(_showGitStatus);
+        Settings.Add(_autoFetch);
+        Settings.Add(_pruneOnFetch);
         Settings.Add(_gitExecutable);
 
         AddToolToggles(tools);
@@ -150,6 +193,10 @@ internal sealed partial class SettingsManager : JsonSettingsManager, ISettingsPr
             ScanDepth = Number(_scanDepth.Value, fallback: 3, min: 1, max: 6),
             FileSearchDepth = Number(_fileSearchDepth.Value, fallback: 3, min: 0, max: 6),
             GroupByProject = _groupByProject.Value,
+            Order = Enum.TryParse<RepositoryOrder>(_order.Value, out var order) ? order : RepositoryOrder.Name,
+            ShowGitStatus = _showGitStatus.Value,
+            AutoFetchInterval = TimeSpan.FromMinutes(Number(_autoFetch.Value, fallback: 0, min: 0, max: 24 * 60)),
+            PruneOnFetch = _pruneOnFetch.Value,
             GitExecutable = string.IsNullOrWhiteSpace(_gitExecutable.Value) ? "git" : _gitExecutable.Value.Trim(),
             DisabledToolIds = _toolToggles
                 .Where(pair => !pair.Value.Value)
