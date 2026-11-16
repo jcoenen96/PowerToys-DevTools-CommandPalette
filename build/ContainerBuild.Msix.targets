@@ -10,10 +10,7 @@
     makepri command the build would run, with paths relative to the repository, and copies makepri.exe next to it.
     The priconfig.xml and .resfiles it reads are made by the build as usual.
   -->
-  <Target
-    Name="_GenerateProjectPriFileCore"
-    DependsOnTargets="_CalculateInputsForGenerateProjectPriFileCore"
-  >
+  <Target Name="_GenerateProjectPriFileCore" DependsOnTargets="_CalculateInputsForGenerateProjectPriFileCore">
     <PropertyGroup>
       <_DevToolsPriProjectRoot>$([MSBuild]::MakeRelative('$(_RepoRoot)', '$(ProjectDir)').Replace('\', '/'))</_DevToolsPriProjectRoot>
       <_DevToolsPriConfig>$([MSBuild]::MakeRelative('$(_RepoRoot)', '$([System.IO.Path]::GetFullPath('$(ProjectDir)$(_PriConfigXmlPath)'))').Replace('\', '/'))</_DevToolsPriConfig>
@@ -21,15 +18,26 @@
     </PropertyGroup>
 
     <MakeDir Directories="$(DevToolsContainerHostDir)x64;$(DevToolsContainerHostDir)arm64" />
-    <Copy SourceFiles="$(WindowsSDKBuildToolsBinVersionedFolder)/x64/makepri.exe" DestinationFolder="$(DevToolsContainerHostDir)x64" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(WindowsSDKBuildToolsBinVersionedFolder)/arm64/makepri.exe" DestinationFolder="$(DevToolsContainerHostDir)arm64" SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="$(WindowsSDKBuildToolsBinVersionedFolder)/x64/makepri.exe"
+      DestinationFolder="$(DevToolsContainerHostDir)x64"
+      SkipUnchangedFiles="true"
+    />
+    <Copy
+      SourceFiles="$(WindowsSDKBuildToolsBinVersionedFolder)/arm64/makepri.exe"
+      DestinationFolder="$(DevToolsContainerHostDir)arm64"
+      SkipUnchangedFiles="true"
+    />
     <WriteLinesToFile
       File="$(DevToolsContainerHostDir)makepri.json"
       Overwrite="true"
       WriteOnlyWhenDifferent="true"
       Lines="{;  &quot;projectRoot&quot;: &quot;$(_DevToolsPriProjectRoot)&quot;,;  &quot;configXml&quot;: &quot;$(_DevToolsPriConfig)&quot;,;  &quot;outputFile&quot;: &quot;$(_DevToolsPriOutput)&quot;,;  &quot;indexName&quot;: &quot;$(ProjectPriIndexName)&quot;;}"
     />
-    <Message Importance="high" Text="$(MSBuildProjectName) -> $(DevToolsContainerHostDir) (resources.pri is made on the Windows host)" />
+    <Message
+      Importance="high"
+      Text="$(MSBuildProjectName) -> $(DevToolsContainerHostDir) (resources.pri is made on the Windows host)"
+    />
   </Target>
 
   <!-- The recipe is for Visual Studio's Deploy and is written by a task that calls into Windows. -->

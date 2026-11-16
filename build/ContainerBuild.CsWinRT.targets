@@ -21,5 +21,4 @@
       <Output TaskParameter="ExitCode" PropertyName="CsWinRTGuidPatchExitCode" />
     </Exec>
   </Target>
-
 </Project>
