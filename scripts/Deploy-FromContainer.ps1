@@ -154,7 +154,8 @@ if (-not $SkipBuild) {
     # Rootless Podman maps container users to unused IDs on the host, which can't write to the checkout. keep-id
     # runs the container's user (vscode, 1000) as you instead, as Docker Desktop's file sharing does.
     $userArguments = @()
-    if ($ContainerEngine -eq 'Podman' -and (& $container info --format '{{.Host.Security.Rootless}}' 2>$null) -eq 'true') {
+    $rootless = if ($ContainerEngine -eq 'Podman') { & $container info --format '{{.Host.Security.Rootless}}' 2>$null }
+    if ($rootless -eq 'true') {
         $userArguments = @('--userns=keep-id:uid=1000,gid=1000')
     }
 

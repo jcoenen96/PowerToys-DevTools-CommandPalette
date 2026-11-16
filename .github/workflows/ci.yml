@@ -118,7 +118,7 @@ jobs:
             chmod -R a+rwX .
             user_args=()
           else
-            user_args=(--userns=keep-id:uid=1000,gid=1000)
+            user_args=("--userns=keep-id:uid=1000,gid=1000")
           fi
           "$ENGINE" run --rm "${user_args[@]}" --volume "$PWD:/workspaces/repo" --workdir /workspaces/repo \
             devtools-commandpalette-dev \
