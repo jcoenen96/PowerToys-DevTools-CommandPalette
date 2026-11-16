@@ -199,9 +199,47 @@ if ($others.Count -gt 0) {
     Remove-ExtensionPackage $others 'replaced by this build'
 }
 
+function Register-Extension {
+    Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+}
+
 Write-Step "Registering $($manifest.DirectoryName)"
 if ($PSCmdlet.ShouldProcess($manifest.FullName, 'Add-AppxPackage -Register')) {
-    Add-AppxPackage -Register $manifest.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+    try {
+        Register-Extension
+    }
+    catch {
+        # 0x80073CFB: Windows only updates a development registration of the same version in place while its
+        # manifest stays the same. A build from the dev container (Deploy-FromContainer.ps1) and one from Windows
+        # write slightly different manifests, so switching between them needs a fresh install. Keep the settings
+        # and tools.json across it: they live in the package's LocalState, which removing the package deletes.
+        if ($_.Exception.Message -notmatch '0x80073CFB') {
+            throw
+        }
+
+        $installed = @(Get-ExtensionPackage)
+        if ($installed.Count -eq 0) {
+            throw
+        }
+
+        Write-Warning 'This build''s manifest differs from the installed one (a Windows build replaced by a container build, or the other way round). Reinstalling, with the settings kept.'
+        $backup = Join-Path ([System.IO.Path]::GetTempPath()) "$PackageName-LocalState-$([guid]::NewGuid())"
+        $localState = Join-Path $env:LOCALAPPDATA "Packages/$($installed[0].PackageFamilyName)/LocalState"
+        if (Test-Path $localState) {
+            Copy-Item -Path $localState -Destination $backup -Recurse
+        }
+
+        Remove-ExtensionPackage $installed 'reinstalled with a different manifest'
+        Register-Extension
+
+        if (Test-Path $backup) {
+            $restored = Join-Path $env:LOCALAPPDATA "Packages/$((@(Get-ExtensionPackage))[0].PackageFamilyName)/LocalState"
+            New-Item -ItemType Directory -Force -Path $restored | Out-Null
+            Copy-Item -Path (Join-Path $backup '*') -Destination $restored -Recurse -Force
+            Remove-Item -Path $backup -Recurse -Force
+            Write-Step 'Restored the settings and tools.json'
+        }
+    }
 }
 
 $packages = @(Get-ExtensionPackage)

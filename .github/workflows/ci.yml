@@ -150,14 +150,28 @@ jobs:
         run: >-
           dotnet build tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
           -p:Platform=x64 -p:CI=true
+      - name: Install PowerToys, turn on Developer Mode
+        uses: ./.github/actions/powertoys
+      - name: Deploy the Windows build first, with a setting to keep
+        # Replacing a Windows build with a container build in the same folder is what a developer who switches
+        # does; Windows refuses that in-place update (0x80073CFB) and Deploy-Extension.ps1 reinstalls instead.
+        shell: pwsh
+        run: |
+          ./scripts/Deploy-Extension.ps1 -Platform x64 -SkipBuild -NoReload
+          $package = Get-AppxPackage -Name DevTools.CommandPalette
+          $localState = Join-Path $env:LOCALAPPDATA "Packages/$($package.PackageFamilyName)/LocalState"
+          New-Item -ItemType Directory -Force $localState | Out-Null
+          Set-Content (Join-Path $localState 'kept.txt') 'kept'
       - name: Replace the extension with the container build
         shell: pwsh
-        run: Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
+        run: |
+          # Command Palette starts the extension once it is installed, which locks its files.
+          Get-Process -Name DevTools.CommandPalette -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru |
+            Wait-Process -Timeout 10 -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
       - uses: actions/download-artifact@v4
         with:
           name: container-build-${{ matrix.engine }}
-      - name: Install PowerToys, turn on Developer Mode
-        uses: ./.github/actions/powertoys
       - name: A repository to list
         shell: pwsh
         run: |
@@ -167,7 +181,11 @@ jobs:
           Set-Content (Join-Path $repo 'Sample.slnx') '<Solution />'
       - name: Deploy the container build
         shell: pwsh
-        run: ./scripts/Deploy-FromContainer.ps1 -Platform x64 -SkipBuild -NoReload
+        run: |
+          ./scripts/Deploy-FromContainer.ps1 -Platform x64 -SkipBuild -NoReload
+          $package = Get-AppxPackage -Name DevTools.CommandPalette
+          $kept = Join-Path $env:LOCALAPPDATA "Packages/$($package.PackageFamilyName)/LocalState/kept.txt"
+          if (-not (Test-Path $kept)) { throw 'The settings were not kept across the reinstall.' }
       - name: Integration tests (installed extension)
         env:
           DEVTOOLS_PACKAGED_TESTS: "1"
