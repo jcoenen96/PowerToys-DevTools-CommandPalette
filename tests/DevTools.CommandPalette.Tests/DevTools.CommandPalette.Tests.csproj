@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Integration tests for the extension itself. The in-process tests drive the real pages (with real git
+    repositories in a temp folder) the way Command Palette does, including search. The packaged tests
+    (PackagedFact) talk to the installed extension over COM, as Command Palette does; CI runs them on a machine
+    with PowerToys after scripts/Deploy-Extension.ps1. Windows only.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <Platforms>x64;ARM64</Platforms>
+    <PlatformTarget>$(Platform)</PlatformTarget>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- LibraryImport (CoCreateInstance) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Compile Include="..\DevTools.Infrastructure.Tests\TempFolder.cs" Link="TempFolder.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DevTools.CommandPalette\DevTools.CommandPalette.csproj" />
+  </ItemGroup>
+</Project>

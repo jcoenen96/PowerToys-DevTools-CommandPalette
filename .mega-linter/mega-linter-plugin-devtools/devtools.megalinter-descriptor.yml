@@ -1,0 +1,45 @@
+# The project's own lint commands, run by MegaLinter with the exact tool versions the repository pins
+# (CSharpier in dotnet-tools.json, the .NET 11 analyzers). MegaLinter's built-in .NET SDK is too old.
+# The tools are installed by PRE_COMMANDS in .mega-linter.yml.
+descriptor_id: DEVTOOLS
+descriptor_type: tooling_format
+descriptor_flavors:
+  - all_flavors
+lint_all_files: true
+linters:
+  - linter_name: csharpier
+    name: DEVTOOLS_CSHARPIER
+    linter_text: C# formatting with the CSharpier version pinned in dotnet-tools.json.
+    linter_url: https://csharpier.com
+    cli_lint_mode: project
+    cli_config_arg_name: ""
+    cli_executable: dotnet
+    cli_lint_extra_args:
+      - csharpier
+      - check
+      - .
+    cli_version_arg_name: --version
+    cli_help_arg_name: --help
+    examples:
+      - dotnet csharpier check .
+  - linter_name: dotnet-analyzers
+    name: DEVTOOLS_DOTNET_ANALYZERS
+    linter_text: >-
+      Builds the cross-platform layers (Domain, Application, Infrastructure and their tests) with the .NET
+      analyzers and the .editorconfig style rules; warnings fail. The Windows-only extension project is
+      built by the Windows job in ci.yml.
+    linter_url: https://learn.microsoft.com/dotnet/fundamentals/code-analysis/overview
+    cli_lint_mode: project
+    cli_config_arg_name: ""
+    cli_executable: dotnet
+    cli_lint_extra_args:
+      - build
+      - DevTools.Core.slnf
+      - -p:CI=true
+      - -consoleLoggerParameters:NoSummary
+    cli_lint_errors_count: regex_count
+    cli_lint_errors_regex: "\\): (?:warning|error) [A-Z]+[0-9]+"
+    cli_version_arg_name: --version
+    cli_help_arg_name: --help
+    examples:
+      - dotnet build DevTools.Core.slnf -p:CI=true

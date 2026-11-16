@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain layer: the concepts of the extension (tools, repositories, worktrees, launch targets). No I/O. -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+</Project>

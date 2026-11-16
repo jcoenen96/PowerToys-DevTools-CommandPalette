@@ -1,0 +1,20 @@
+<Project>
+  <!-- Shared settings and linting for every project: the .NET analyzers plus the code style rules in .editorconfig. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- CI (GitHub Actions sets CI=true) fails on any analyzer or code style warning. -->
+    <CodeAnalysisTreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!--
+    The version comes from GitVersion (GitVersion.yml): CI passes it with -p:Version.
+    Local builds are 0.0.0-local.
+  -->
+  <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">0.0.0-local</Version>
+  </PropertyGroup>
+</Project>

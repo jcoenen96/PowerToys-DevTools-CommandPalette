@@ -1,0 +1,21 @@
+name: Pull request
+
+# The PR title becomes the commit message on main (squash merge), and GitVersion bumps the version from it,
+# so this check also runs when the title is edited.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  title:
+    name: PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Title follows Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: scripts/check-pr-title.sh "$PR_TITLE"

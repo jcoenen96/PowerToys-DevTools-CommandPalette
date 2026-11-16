@@ -1,0 +1,32 @@
+#!/bin/sh
+# Checks the staged files before every commit; the fast, locally installed subset of what MegaLinter
+# runs in CI (see README "Code style"):
+#   - secretlint (and Betterleaks, if installed) block secrets such as access tokens
+#   - CSharpier formats C#; markdownlint checks Markdown
+# lint-staged only touches what is staged and re-stages the fixed files.
+# Installed automatically by `npm install` or a .NET build; see README "Code style".
+root="$(git rev-parse --show-toplevel)"
+bin="$root/node_modules/.bin"
+
+if [ ! -x "$bin/lint-staged" ] || [ ! -x "$bin/secretlint" ]; then
+  echo "pre-commit: tooling is missing. Run 'npm install' in the repository root once, then commit again." >&2
+  exit 1
+fi
+PATH="$bin:$PATH"
+export PATH
+cd "$root" || exit 1
+
+# NUL-separated so names with spaces survive; skipped when only deletions are staged.
+if [ -n "$(git diff --cached --name-only --diff-filter=ACMR)" ]; then
+  git diff --cached --name-only --diff-filter=ACMR -z |
+    xargs -0 secretlint --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore || {
+    echo "pre-commit: secretlint found a secret in the staged files. Remove it before committing." >&2
+    exit 1
+  }
+fi
+
+if command -v betterleaks >/dev/null 2>&1; then
+  betterleaks git --staged --redact --no-banner --config .betterleaks.toml || exit 1
+fi
+
+dotnet tool restore >/dev/null && lint-staged

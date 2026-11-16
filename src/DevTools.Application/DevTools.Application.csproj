@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Application layer: the use cases (find launch targets, launch tools, run git) behind ports in Abstractions/. -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DevTools.Domain\DevTools.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DevTools.Application.Tests" />
+  </ItemGroup>
+</Project>

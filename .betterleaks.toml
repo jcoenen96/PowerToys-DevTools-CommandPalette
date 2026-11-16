@@ -1,0 +1,8 @@
+# Betterleaks (run by MegaLinter and the pre-commit hook) with its default rules.
+# Never allowlist a real token: git credentials belong in Git Credential Manager, not in this repository.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Build output and dependencies, not our code (MegaLinter's .NET build runs before the scan)"
+paths = ['''(^|/)(bin|obj|node_modules|AppPackages)/''']

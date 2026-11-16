@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Infrastructure layer: the ports of the application layer, implemented with the file system, git and processes. -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- LibraryImport (reading app execution aliases, ExecutableIconLocator) generates unsafe marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DevTools.Application\DevTools.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DevTools.Infrastructure.Tests" />
+  </ItemGroup>
+</Project>
