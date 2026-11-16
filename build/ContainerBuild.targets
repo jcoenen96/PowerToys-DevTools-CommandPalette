@@ -1,0 +1,13 @@
+<Project>
+  <!-- See ContainerBuild.props. Imported last, so these targets replace the ones from the NuGet packages. -->
+  <ItemGroup Condition="'$(EnableMsixTooling)' == 'true'">
+    <!-- makepri.exe and friends; its props point the MSIX tooling at them instead of the Windows SDK. -->
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>build; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Import Project="ContainerBuild.CsWinRT.targets" Condition="'$(CsWinRTPath)' != ''" />
+  <Import Project="ContainerBuild.Msix.targets" Condition="'$(EnableMsixTooling)' == 'true'" />
+</Project>

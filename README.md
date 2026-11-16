@@ -91,6 +91,17 @@ The extension is an MSIX package, like every Command Palette extension. Until th
    It needs **Developer Mode** (Settings > System > For developers), which any unsigned extension needs. In Visual
    Studio, **Build > Deploy** on *DevTools.CommandPalette* does the same.
 
+Without the .NET SDK, build in the [dev container](#in-the-dev-container) instead: with
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) running Linux containers, step 2 becomes
+nothing and step 3 becomes
+
+```powershell
+./scripts/Deploy-FromContainer.ps1
+```
+
+It builds the extension inside the dev container, on your checkout, then installs it with `Deploy-Extension.ps1`
+the same way. It takes `-Configuration`, `-Platform`, `-SkipBuild`, `-NoReload` and `-Clean` too.
+
 ## Set it up
 
 Open Command Palette settings, then **Extensions > Dev tools**:
@@ -253,7 +264,7 @@ tests/
 dotnet test DevTools.Core.slnf        # the cross-platform layers and their tests; works on Linux and macOS too
 ```
 
-The extension project itself needs Windows. Build, install and reload it in one go with
+The extension runs on Windows only. Build, install and reload it in one go with
 `./scripts/Deploy-Extension.ps1` (see [Install](#install)). Its integration tests run on Windows:
 
 ```powershell
@@ -263,6 +274,29 @@ dotnet test tests/DevTools.CommandPalette.Tests -p:Platform=x64 --no-build      
 ```
 
 CI does the same on a Windows runner with PowerToys installed.
+
+### In the dev container
+
+`.devcontainer/` has everything to work on the extension, so you only need Docker: the .NET 11 SDK, PowerShell,
+git and Node.js. Open the repository in VS Code with the Dev Containers extension and
+choose **Reopen in Container**; it restores the dotnet tools, `npm ci` (the pre-commit hook) and the packages.
+
+- `dotnet test DevTools.Core.slnf` works as everywhere.
+- The extension builds too: `dotnet build src/DevTools.CommandPalette -p:Platform=x64` (or `ARM64`). The container
+  sets `DevToolsContainerBuild=true`, which turns on `build/ContainerBuild.props`. The extension targets Windows,
+  and a few build steps use the Windows SDK:
+  - CsWinRT's projection step is off; for this project it generates nothing.
+  - CsWinRT's IIDOptimizer runs with `dotnet` instead of its Windows launcher.
+  - `resources.pri` is made by `makepri.exe`, which only runs on Windows (not under Wine either). The build makes
+    its input as usual and copies `makepri.exe` and its arguments to `artifacts/container/`.
+    `scripts/Deploy-FromContainer.ps1` runs it on Windows before it installs the build.
+- Installing the extension, and its integration tests, need Windows with Command Palette: run
+  `./scripts/Deploy-FromContainer.ps1` on the Windows host (it builds in the same container), not inside it.
+- The NuGet packages live in a Docker volume (`devtools-commandpalette-nuget`) that the dev container and the
+  deploy script share.
+
+CI builds the extension in the dev container too, and deploys and tests that build on a Windows runner with
+PowerToys.
 
 ## Code style
 

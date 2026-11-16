@@ -1,0 +1,26 @@
+{
+  "name": "Dev tools for Command Palette",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=devtools-commandpalette-nuget,target=/home/vscode/.nuget/packages,type=volume",
+    "source=devtools-commandpalette-npm,target=/home/vscode/.npm,type=volume"
+  ],
+  "postCreateCommand": "dotnet tool restore && npm ci && dotnet restore DevTools.slnx",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "csharpier.csharpier-vscode",
+        "DavidAnson.vscode-markdownlint",
+        "EditorConfig.EditorConfig",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck",
+        "github.vscode-github-actions",
+        "ms-vscode.powershell"
+      ]
+    }
+  }
+}

@@ -9,6 +9,8 @@
     <PackageVersion Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.261102100" />
     <PackageVersion Include="Shmuelie.WinRTServer" Version="2.1.1" />
+    <!-- Only for builds in the dev container (build/ContainerBuild.targets): makepri.exe without the Windows SDK. -->
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
     <!--
       The SDK's toolkit uses these, but its package doesn't declare them, so they would be missing from the
       extension. ToolGood.Words.Pinyin is what the toolkit's search (FuzzyStringMatcher) loads: without it, typing in

@@ -17,4 +17,7 @@
   <PropertyGroup>
     <Version Condition="'$(Version)' == ''">0.0.0-local</Version>
   </PropertyGroup>
+
+  <!-- Building the Windows-only projects on Linux, in the dev container (.devcontainer/). -->
+  <Import Project="build/ContainerBuild.props" Condition="'$(DevToolsContainerBuild)' == 'true'" />
 </Project>
