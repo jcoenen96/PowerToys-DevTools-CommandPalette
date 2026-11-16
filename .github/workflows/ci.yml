@@ -164,7 +164,11 @@ jobs:
           Set-Content (Join-Path $localState 'kept.txt') 'kept'
       - name: Replace the extension with the container build
         shell: pwsh
-        run: Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
+        run: |
+          # Command Palette starts the extension once it is installed, which locks its files.
+          Get-Process -Name DevTools.CommandPalette -ErrorAction SilentlyContinue | Stop-Process -Force -PassThru |
+            Wait-Process -Timeout 10 -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
       - uses: actions/download-artifact@v4
         with:
           name: container-build-${{ matrix.engine }}
