@@ -41,6 +41,24 @@ Open in Visual Studio
   - list and remove worktrees, prune stale ones;
   - fetch, pull (fast-forward or rebase), push (sets the upstream for new branches), stash and pop, status, log,
     and discard all changes (asks first).
+- **A repository hub.** *Git repositories* shows every clone and
+  worktree with its branch, how far it is ahead of or behind its upstream (`↑2 ↓1`) and how many files changed.
+  - **Pin** a repository (Ctrl+K > *Pin*) to list it first everywhere; pins are kept across restarts.
+  - **Ignore** a repository to hide it from every list; *Ignored repositories* at the bottom of *Git repositories*
+    shows it again.
+  - **Sort** by name, most recently used or most used (last 30 days); pinned repositories always come first.
+  - **Tags** from `repositories.json` (`work` for every repository with an Azure DevOps remote, `dotnet` for every
+    repository with a `.slnx`, …) show on every repository and project.
+  - **Search filters** in every list: `tag:work`, `-tag:archived`, `is:pinned`, `has:changes`, `is:behind`,
+    `branch:feature/*`, `remote:github.com`, combined with `OR` (see [Search](#search)). The filter list next to the
+    search box on *Git repositories* has the common ones, one per tag, and your saved searches.
+  - **Saved searches**: type a search and choose *Save the search*. Saved searches are listed at the top of
+    *Git repositories* and in its filter list.
+  - **The remote on the web**: browse the repository or the current branch, start a pull request (GitHub, GitLab,
+    Azure DevOps, Bitbucket) or copy the remote URL.
+  - **Your own actions** from `repositories.json`: open a link, run a command, or copy text, for the repositories a
+    condition picks, optionally once per matching file (`dotnet test` per `*.Tests.csproj`).
+  - **Fetch in the background** every 5 to 60 minutes (off by default), or *Fetch all repositories* now.
 - **Presets, plus any tool you like.** Ready to go: Visual Studio (any edition, found with vswhere), Visual Studio
   Code and Insiders, JetBrains Rider, IntelliJ IDEA, WebStorm, PyCharm, GoLand, CLion, RustRover and DataGrip
   (Toolbox or standalone installs), Orca, Windows Terminal and File Explorer. Add your own tools, or change a
@@ -86,6 +104,10 @@ Open Command Palette settings, then **Extensions > Dev tools**:
 | Repository search depth | 3 | Folder levels below each folder searched for repositories. |
 | Solution search depth | 3 | Folder levels inside a repository searched for solutions. |
 | List projects first | on | Tool pages list project names; choose one for its clone and worktrees. |
+| Sort repositories by | Name | Name, recently used, or most used in the last 30 days; pinned ones always first. |
+| Show git status | on | Ahead, behind and changed counts on *Git repositories* (runs `git status` in the background). |
+| Fetch in the background | Off | Every 5, 15, 30 or 60 minutes: `git fetch --all` in every repository with a remote. |
+| Prune when fetching in the background | on | Background fetches also drop remote branches deleted on the remote. |
 | Git executable | `git` | The git to run. |
 | One switch per tool | on | Off removes the tool's command (and hotkey) and its Ctrl+K entries. |
 
@@ -136,6 +158,57 @@ every field explained. Saved changes apply right away.
 - A new tool gets its own *Open in …* command (with its own hotkey and alias) and its own switch in the settings.
   When none of its `executables` is found, the command stays, with a warning, so its hotkey isn't lost.
 
+### Tags, actions and saved searches: `repositories.json`
+
+Run **Edit repository tags and actions** in the palette. It creates and opens `repositories.json` in the extension's
+settings folder with every field explained. Saved changes apply right away.
+
+```jsonc
+{
+  "tags": [
+    { "tag": "work", "when": { "remote": "dev.azure.com/my-org" } },
+    { "tag": "dotnet", "when": { "fileExists": "*.slnx" } },
+  ],
+  "actions": [
+    { "name": "Wiki", "url": "{webUrl}/wiki", "when": { "remote": "github.com" } },
+    {
+      "name": "dotnet test {fileName}",
+      "command": "cmd.exe",
+      "arguments": "/k dotnet test \"{file}\"",
+      "forEachFile": "*.Tests.csproj",
+    },
+    { "name": "Copy clone URL", "copy": "{remoteUrl}" },
+  ],
+  "searches": [{ "name": "Work with changes", "query": "tag:work has:changes" }],
+}
+```
+
+- A `when` picks repositories; every field you set must match: `name` and `branch` (with `*` and `?`), `path`,
+  `remote` (part of a remote URL), `fileExists` (relative to the repository, wildcards in the last part),
+  `isWorktree`, and for actions `tag`.
+- An action has one of `url` (opens in the browser), `command` with `arguments` (starts a program in the
+  repository, or in `workingDirectory`) or `copy` (copies text), and optionally `icon` and `forEachFile`.
+- Placeholders: `{path}`, `{name}`, `{branch}`, `{remoteUrl}`, `{webUrl}` (the remote's web page), `{file}` and
+  `{fileName}` (with `forEachFile`), and `%VARIABLES%`.
+- Pins, ignored repositories, usage and the searches you save in the palette are kept in `state.json` next to it.
+
+### Search
+
+Every list takes filters next to the text you search for. Filters all have to match; `OR` (or `|`) between them
+matches either side.
+
+| Filter | Matches |
+| --- | --- |
+| `tag:work` | repositories with that tag (`*` works: `tag:client-*`) |
+| `name:shop`, `branch:feature/*`, `path:work`, `remote:github.com` | by name, branch, path or remote URL |
+| `is:pinned`, `is:worktree`, `is:clone`, `is:detached` | pinned repositories, worktrees, clones, detached HEADs |
+| `has:changes`, `has:untracked`, `is:ahead`, `is:behind`, `is:clean`, `has:upstream` | by git status (*Git repositories*) |
+| `has:remote` | repositories with a remote |
+| `-tag:archived` or `!tag:archived` | everything except those |
+
+A word that is a tag finds the repositories with that tag, so `work` finds the `work` repositories as well as names
+with "work" in them. Quote values with spaces: `path:"my repos"`.
+
 ## Architecture
 
 A layered solution; each layer only knows the ones below it.
@@ -155,6 +228,10 @@ DevTools.Domain           Tools, repositories, worktrees, branches, launch targe
 - The application layer defines its ports in `Abstractions/` (`IRepositoryScanner`, `IGitRunner`,
   `IExecutableResolver`, …); the infrastructure implements them. `DevToolsServices` wires them together without a
   DI container, which keeps the extension trimmable and AOT-friendly.
+- Pins, ignored repositories, usage and saved searches live in `state.json`, tags and actions in
+  `repositories.json`, both in the extension's settings folder. Remotes are read straight from each repository's git
+  config, so the scan stays instant; `git status` runs in the background, four repositories at a time, and is kept
+  for a minute.
 - Repository scans are cached for 30 seconds and refreshed after every git command that changes them; Ctrl+K >
   *Refresh* rescans right away.
 

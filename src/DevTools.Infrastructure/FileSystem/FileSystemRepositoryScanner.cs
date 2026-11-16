@@ -46,7 +46,11 @@ public sealed class FileSystemRepositoryScanner : IRepositoryScanner
         {
             var name = git.MainRepositoryPath is { } main ? Path.GetFileName(main) : Path.GetFileName(folder);
             found.Add(
-                new GitRepository(name, folder, git.Head, git.Kind) { MainRepositoryPath = git.MainRepositoryPath }
+                new GitRepository(name, folder, git.Head, git.Kind)
+                {
+                    MainRepositoryPath = git.MainRepositoryPath,
+                    Remotes = git.Remotes,
+                }
             );
             return;
         }

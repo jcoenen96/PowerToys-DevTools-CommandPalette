@@ -2,6 +2,7 @@ using DevTools.CommandPalette.Commands;
 using DevTools.CommandPalette.Pages;
 using DevTools.CommandPalette.Settings;
 using DevTools.Infrastructure;
+using DevTools.Infrastructure.Repositories;
 using DevTools.Infrastructure.Tools;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -16,6 +17,7 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
 {
     private readonly SettingsManager _settings;
     private readonly JsonToolCatalog _catalog;
+    private readonly JsonRepositoryConfiguration _repositories;
     private readonly DevToolsServices _services;
     private readonly Lock _lock = new();
     private ICommandItem[]? _commands;
@@ -31,13 +33,20 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
 
         _catalog = new JsonToolCatalog(Path.Combine(folder, "tools.json"));
         _settings = new SettingsManager(Path.Combine(folder, "settings.json"), _catalog.GetTools());
-        _services = new DevToolsServices(_settings, _catalog);
+        _repositories = new JsonRepositoryConfiguration(Path.Combine(folder, "repositories.json"));
+        _services = new DevToolsServices(
+            _settings,
+            _catalog,
+            _repositories,
+            new JsonRepositoryStateStore(Path.Combine(folder, "state.json"))
+        );
 
         Settings = _settings.Settings;
         // The commands change with the settings and tools.json, so Command Palette must ask again.
         Frozen = false;
 
         _settings.Changed += (_, _) => Rebuild();
+        _repositories.Changed += (_, _) => Rebuild();
         _catalog.Changed += (_, _) =>
         {
             // A tool added to tools.json gets its own switch in the settings.
@@ -84,6 +93,17 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
             Id = CommandIds.EditTools,
         };
 
+        var editRepositories = new OpenWithShellCommand(
+            _services,
+            _repositories.ConfigurationPath,
+            "Edit repositories",
+            Icons.Tag,
+            _repositories.EnsureConfigurationFile
+        )
+        {
+            Id = CommandIds.EditRepositories,
+        };
+
         // Every enabled tool gets its own command, so it can have its own hotkey and alias. A preset that isn't
         // installed is left out; a tool from tools.json stays, with a warning, so its command and hotkey don't vanish.
         var tools = _services
@@ -120,7 +140,7 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
             new CommandItem(new RepositoriesPage(_services))
             {
                 Title = "Git repositories",
-                Subtitle = "Branches, worktrees, fetch, pull, push and more",
+                Subtitle = "Status, branches, worktrees, fetch, pull, push; filter by tag:, is:pinned, has:changes",
                 MoreCommands = [settingsItem],
             },
             new CommandItem(editTools)
@@ -128,6 +148,15 @@ public sealed partial class DevToolsCommandsProvider : CommandProvider
                 Title = "Edit dev tools",
                 Subtitle = _catalog.ConfigurationError ?? "Add your own tools or change the presets in tools.json",
                 Icon = _catalog.ConfigurationError is null ? Icons.Edit : Icons.Warning,
+                MoreCommands = [settingsItem],
+            },
+            new CommandItem(editRepositories)
+            {
+                Title = "Edit repository tags and actions",
+                Subtitle =
+                    _repositories.ConfigurationError
+                    ?? "Tag repositories, add your own actions (links, commands) and saved searches in repositories.json",
+                Icon = _repositories.ConfigurationError is null ? Icons.Tag : Icons.Warning,
                 MoreCommands = [settingsItem],
             },
         ];

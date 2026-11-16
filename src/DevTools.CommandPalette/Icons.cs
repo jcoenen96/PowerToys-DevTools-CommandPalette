@@ -35,6 +35,28 @@ internal static class Icons
 
     public static IconInfo Warning { get; } = new("\uE7BA");
 
+    public static IconInfo Pin { get; } = new("\uE718");
+
+    public static IconInfo Unpin { get; } = new("\uE77A");
+
+    public static IconInfo Tag { get; } = new("\uE8EC");
+
+    public static IconInfo Hide { get; } = new("\uED1A");
+
+    public static IconInfo Show { get; } = new("\uE7B3");
+
+    public static IconInfo Web { get; } = new("\uE774");
+
+    public static IconInfo PullRequest { get; } = new("\uE8F1");
+
+    public static IconInfo Search { get; } = new("\uE721");
+
+    public static IconInfo Save { get; } = new("\uE74E");
+
+    public static IconInfo Fetch { get; } = new("\uE896");
+
+    public static IconInfo Run { get; } = new("\uE768");
+
     public static IconInfo For(GitRepository repository) => repository.IsWorktree ? Worktree : Repository;
 
     /// <summary>

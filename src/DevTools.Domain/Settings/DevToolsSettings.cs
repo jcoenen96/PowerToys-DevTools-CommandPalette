@@ -1,3 +1,5 @@
+using DevTools.Domain.Repositories;
+
 namespace DevTools.Domain.Settings;
 
 /// <summary>The user's settings, as the Command Palette settings page edits them.</summary>
@@ -34,6 +36,18 @@ public sealed record DevToolsSettings
 
     /// <summary>The git executable; a bare name is looked up on PATH.</summary>
     public string GitExecutable { get; init; } = "git";
+
+    /// <summary>How repositories and projects are sorted; pinned ones always come first.</summary>
+    public RepositoryOrder Order { get; init; } = RepositoryOrder.Name;
+
+    /// <summary>Runs <c>git status</c> for the listed repositories to show ahead, behind and changed counts.</summary>
+    public bool ShowGitStatus { get; init; } = true;
+
+    /// <summary>How often every repository is fetched in the background; <see cref="TimeSpan.Zero"/> is off.</summary>
+    public TimeSpan AutoFetchInterval { get; init; } = TimeSpan.Zero;
+
+    /// <summary>Background fetches also remove remote-tracking branches that are gone on the remote.</summary>
+    public bool PruneOnFetch { get; init; } = true;
 
     /// <summary>Ids of tools the user switched off.</summary>
     public IReadOnlySet<string> DisabledToolIds { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

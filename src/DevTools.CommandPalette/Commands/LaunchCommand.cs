@@ -24,6 +24,7 @@ internal sealed partial class LaunchCommand : InvokableCommand
         var result = _services.Launcher.Launch(_target);
         if (result.Succeeded)
         {
+            _services.Preferences.RecordUse(_target.Repository.Path);
             return CommandResult.Dismiss();
         }
 

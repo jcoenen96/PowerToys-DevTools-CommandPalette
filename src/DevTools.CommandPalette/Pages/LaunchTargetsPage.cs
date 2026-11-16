@@ -1,4 +1,5 @@
 using DevTools.Application.Repositories;
+using DevTools.Application.Search;
 using DevTools.CommandPalette.Commands;
 using DevTools.Domain.Projects;
 using DevTools.Domain.Tools;
@@ -20,11 +21,16 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
     private Snapshot? _snapshot;
     private DateTimeOffset _builtAt;
     private bool _refresh;
+    private bool _stale;
 
     protected LaunchTargetsPage(DevToolsServices services)
     {
         Services = services;
         EmptyContent = EmptyStates.NoRepositories(services);
+
+        // A pin, an ignored repository or a use changes the order and the tags; the scan itself is still good.
+        services.Preferences.Changed += (_, _) => MarkStale();
+        services.RepositoryConfiguration.Changed += (_, _) => MarkStale();
     }
 
     protected DevToolsServices Services { get; }
@@ -52,34 +58,58 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
     public override IListItem[] GetItems()
     {
         var snapshot = Build();
-        var search = SearchText;
-        var searching = !string.IsNullOrWhiteSpace(search);
+        var searching = !string.IsNullOrWhiteSpace(SearchText);
+
+        // Filters such as tag:work or is:pinned narrow the list; the rest of the text is matched as before.
+        var query = RepositoryQuery.Parse(SearchText);
+        var search = query.FreeText;
+        var targets = snapshot.Targets.Where(entry => query.Matches(entry.Repository, status: null)).ToArray();
 
         if (!Services.Settings.Current.GroupByProject)
         {
-            IEnumerable<IListItem> all = snapshot.Targets;
-            return searching ? [.. ListHelpers.FilterList(all, search)] : [.. all];
+            return searching ? [.. Find(targets, query)] : [.. targets.Select(entry => entry.Item)];
         }
 
-        IEnumerable<IListItem> projects = snapshot.Projects;
         if (!searching)
         {
-            return [.. projects];
+            return [.. snapshot.Projects.Select(project => project.Item)];
         }
 
-        IEnumerable<IListItem> targets = snapshot.Targets;
-        return [.. ListHelpers.FilterList(projects, search), .. ListHelpers.FilterList(targets, search)];
+        var projects = snapshot.Projects.Where(project => project.Checkouts.Any(c => query.Matches(c, status: null)));
+        return [.. Find(projects, query), .. Find(targets, query)];
+    }
+
+    /// <summary>
+    /// The items whose name or path fuzzily match the free text, after the ones with a tag that is that text. Without
+    /// free text (only filters), all of them.
+    /// </summary>
+    private static IEnumerable<IListItem> Find(IEnumerable<IMatchable> candidates, RepositoryQuery query)
+    {
+        var all = candidates.ToArray();
+        if (query.FreeText.Length == 0)
+        {
+            return all.Select(candidate => candidate.Item);
+        }
+
+        var tagged = all.Where(candidate => candidate.Checkouts.Any(query.FreeTextMatchesTag)).ToArray();
+        return
+        [
+            .. tagged.Select(candidate => candidate.Item),
+            .. ListHelpers.FilterList(all.Except(tagged).Select(candidate => candidate.Item), query.FreeText),
+        ];
     }
 
     private Snapshot Build()
     {
         lock (_lock)
         {
-            var stale = DateTimeOffset.UtcNow - _builtAt >= RepositoryService.CacheDuration;
+            var stale = _stale || DateTimeOffset.UtcNow - _builtAt >= RepositoryService.CacheDuration;
             if (_snapshot is not null && !_refresh && !stale)
             {
                 return _snapshot;
             }
+
+            _stale = false;
         }
 
         IsLoading = true;
@@ -93,6 +123,7 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
             }
 
             var installed = Services.Tools.GetInstalledTools();
+            var catalog = Services.RepositoryCatalog;
             var entries = new List<Entry>();
             var toolIndex = 0;
             foreach (var tool in Tools(installed))
@@ -101,17 +132,18 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
                 var icon = Icons.For(tool, Services.Resolver);
                 foreach (var target in Services.Targets.GetTargets(tool, refresh))
                 {
+                    var repository = catalog.GetEntry(target.Repository);
                     var item = new ListItem(new LaunchCommand(Services, target))
                     {
                         Title = target.Title,
                         Subtitle = target.Path,
                         Icon = icon,
-                        Tags = Tags.For(target.Repository),
+                        Tags = Tags.For(repository),
                         TextToSuggest = target.Name,
                         MoreCommands = RepositoryMenu.For(Services, target.Repository, installed, Refresh, target),
                     };
                     Decorate(item, target);
-                    entries.Add(new Entry(target, item, toolIndex));
+                    entries.Add(new Entry(target, repository, item, toolIndex));
                 }
 
                 // Only the first tool may rescan the folders; the others reuse that scan.
@@ -119,7 +151,17 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
                 toolIndex++;
             }
 
-            var snapshot = new Snapshot([.. entries.Select(entry => entry.Item)], ProjectItems(entries));
+            // Pinned repositories first, then the order from the settings; per tool, as the tools are listed.
+            var order = catalog
+                .Sort([.. entries.Select(entry => entry.Repository).DistinctBy(entry => entry.Repository)])
+                .Select((entry, index) => (entry.Repository, index))
+                .ToDictionary(pair => pair.Repository, pair => pair.index);
+            var sorted = entries
+                .OrderBy(entry => entry.ToolIndex)
+                .ThenBy(entry => order[entry.Target.Repository])
+                .ToList();
+
+            var snapshot = new Snapshot([.. sorted], ProjectItems(sorted));
             lock (_lock)
             {
                 _snapshot = snapshot;
@@ -134,9 +176,10 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
         }
     }
 
-    private ListItem[] ProjectItems(List<Entry> entries)
+    private ProjectEntry[] ProjectItems(List<Entry> entries)
     {
-        var projects = Project.Group(entries.Select(entry => entry.Target.Repository).Distinct());
+        var catalog = Services.RepositoryCatalog;
+        var projects = catalog.Sort(Project.Group(entries.Select(entry => entry.Target.Repository).Distinct()));
         return
         [
             .. projects.Select(project =>
@@ -149,21 +192,33 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
                     .Select(entry => entry.Item)
                     .ToArray();
                 var worktrees = project.Checkouts.Count(checkout => checkout.IsWorktree);
+                var checkouts = project.Checkouts.Select(catalog.GetEntry).ToArray();
 
-                return new ListItem(new ProjectTargetsPage(project, ProjectTitle(project), Icon, items))
+                ITag[] worktreeTags = worktrees switch
+                {
+                    0 => [],
+                    1 => [new Tag("1 worktree") { Icon = Icons.Worktree }],
+                    _ => [new Tag($"{worktrees} worktrees") { Icon = Icons.Worktree }],
+                };
+
+                var item = new ListItem(new ProjectTargetsPage(project, ProjectTitle(project), Icon, items))
                 {
                     Title = project.Name,
                     Subtitle = project.Path,
                     Icon = ProjectIcon,
-                    Tags = worktrees switch
-                    {
-                        0 => [],
-                        1 => [new Tag("1 worktree") { Icon = Icons.Worktree }],
-                        _ => [new Tag($"{worktrees} worktrees") { Icon = Icons.Worktree }],
-                    },
+                    // Whether one of its checkouts is pinned, and the tags of all of them.
+                    Tags =
+                    [
+                        .. Tags.For(
+                            checkouts.Any(checkout => checkout.IsPinned),
+                            checkouts.SelectMany(checkout => checkout.Tags)
+                        ),
+                        .. worktreeTags,
+                    ],
                     TextToSuggest = project.Name,
                     MoreCommands = items.Length > 0 ? items[0].MoreCommands : [],
                 };
+                return new ProjectEntry(item, checkouts);
             }),
         ];
     }
@@ -191,7 +246,31 @@ internal abstract partial class LaunchTargetsPage : DynamicListPage
         RaiseItemsChanged();
     }
 
-    private sealed record Entry(LaunchTarget Target, ListItem Item, int ToolIndex);
+    private void MarkStale()
+    {
+        lock (_lock)
+        {
+            _stale = true;
+        }
 
-    private sealed record Snapshot(ListItem[] Targets, ListItem[] Projects);
+        RaiseItemsChanged();
+    }
+
+    /// <summary>Something the search can match: an item and the checkouts behind it.</summary>
+    private interface IMatchable
+    {
+        ListItem Item { get; }
+
+        IReadOnlyList<RepositoryEntry> Checkouts { get; }
+    }
+
+    private sealed record Entry(LaunchTarget Target, RepositoryEntry Repository, ListItem Item, int ToolIndex)
+        : IMatchable
+    {
+        public IReadOnlyList<RepositoryEntry> Checkouts => [Repository];
+    }
+
+    private sealed record ProjectEntry(ListItem Item, IReadOnlyList<RepositoryEntry> Checkouts) : IMatchable;
+
+    private sealed record Snapshot(Entry[] Targets, ProjectEntry[] Projects);
 }
