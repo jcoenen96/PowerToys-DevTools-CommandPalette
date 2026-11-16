@@ -23,4 +23,7 @@
     <Exec Command="git config core.hooksPath .githooks" WorkingDirectory="$(_RepoRoot)" ContinueOnError="true" />
     <Touch Files="$(_DevToolingMarker)" AlwaysCreate="true" ContinueOnError="true" />
   </Target>
+
+  <!-- Building the Windows-only projects on Linux, in the dev container (.devcontainer/). -->
+  <Import Project="build/ContainerBuild.targets" Condition="'$(DevToolsContainerBuild)' == 'true'" />
 </Project>

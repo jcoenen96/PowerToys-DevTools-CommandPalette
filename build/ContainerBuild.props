@@ -1,0 +1,25 @@
+<Project>
+  <!--
+    Builds the Windows-only projects (the extension and its tests) on Linux, in the dev container
+    (.devcontainer/). The container sets DevToolsContainerBuild=true; a build on Windows never imports this file.
+
+    Everything is the normal build except what needs the Windows SDK, which a Linux container doesn't have:
+      - CsWinRT's projection step runs cswinrt.exe against the installed Windows SDK. For this project it only
+        excludes Windows.* and Microsoft.* and so generates an empty WinRT namespace; it is switched off here.
+      - The tools that the MSIX tooling would look up in the Windows SDK come from the
+        Microsoft.Windows.SDK.BuildTools package instead (see ContainerBuild.targets).
+      - resources.pri is made by makepri.exe, a Windows program. The container prepares its input and copies
+        makepri.exe to artifacts/container/; scripts/Deploy-FromContainer.ps1 runs it on the Windows host.
+  -->
+  <PropertyGroup>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <CsWinRTGenerateProjection>false</CsWinRTGenerateProjection>
+    <!-- Visual Studio's default for packaged apps; the Windows SDK props would set it on Windows. -->
+    <DefaultLanguage Condition="'$(DefaultLanguage)' == ''">en-US</DefaultLanguage>
+    <!--
+      APPX2101: the manifest step can't run makepri.exe to read the languages from resources.pri, so the manifest's
+      x-generate language comes from DefaultLanguage, which is what resources.pri would say.
+    -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);APPX2101</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+</Project>

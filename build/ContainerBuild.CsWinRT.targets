@@ -1,0 +1,24 @@
+<Project>
+  <!-- See ContainerBuild.props; imported by ContainerBuild.targets for projects that use CsWinRT. -->
+  <!--
+    CsWinRT's IIDOptimizer is a .NET program shipped as IIDOptimizer.exe, a Windows apphost; run its dll with
+    dotnet instead. Same step and arguments as Microsoft.Windows.CsWinRT.IIDOptimizer.targets.
+  -->
+  <Target
+    Name="CsWinRTInvokeGuidPatcher"
+    Condition="'$(DesignTimeBuild)' == ''"
+    AfterTargets="Compile"
+    BeforeTargets="Link"
+    DependsOnTargets="CsWinRTGenerateIIDOptimizerResponseFile"
+  >
+    <Exec
+      Command="&quot;$(DOTNET_HOST_PATH)&quot; &quot;$(CsWinRTIIDOptimizerPath)IIDOptimizer.dll&quot; @&quot;$(CsWinRTIIDOptimizerResponseFile)&quot;"
+      EnvironmentVariables="DOTNET_ROLL_FORWARD=Major"
+      ConsoleToMsBuild="true"
+      IgnoreExitCode="true"
+    >
+      <Output TaskParameter="ConsoleOutput" PropertyName="CsWinRTGuidPatchOutput" />
+      <Output TaskParameter="ExitCode" PropertyName="CsWinRTGuidPatchExitCode" />
+    </Exec>
+  </Target>
+</Project>

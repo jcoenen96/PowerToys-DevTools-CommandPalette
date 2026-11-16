@@ -1,0 +1,30 @@
+name: PowerToys
+description: Installs PowerToys (with Command Palette) and turns on Developer Mode, to deploy the extension.
+runs:
+  using: composite
+  steps:
+    - name: Install PowerToys
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $winget = Get-Command winget -ErrorAction SilentlyContinue
+        if ($winget) {
+          winget install --id Microsoft.PowerToys --exact --silent --scope machine `
+            --accept-package-agreements --accept-source-agreements --disable-interactivity
+        }
+        if (-not (Test-Path "$env:ProgramFiles\PowerToys\PowerToys.exe")) {
+          # No winget on the runner (or it failed): the machine-wide installer from the latest release.
+          $release = gh api repos/microsoft/PowerToys/releases/latest | ConvertFrom-Json
+          $asset = $release.assets | Where-Object name -Like 'PowerToysSetup-*-x64.exe' | Select-Object -First 1
+          $setup = Join-Path $env:RUNNER_TEMP $asset.name
+          Invoke-WebRequest $asset.browser_download_url -OutFile $setup
+          Start-Process $setup -ArgumentList '/quiet', '/norestart' -Wait
+        }
+        Get-AppxPackage -Name 'Microsoft.CommandPalette*' | Format-List Name, Version, InstallLocation
+    - name: Turn on Developer Mode
+      shell: pwsh
+      run: |
+        $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
+        if (-not (Test-Path $key)) { New-Item -Path $key | Out-Null }
+        New-ItemProperty -Path $key -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWORD -Force

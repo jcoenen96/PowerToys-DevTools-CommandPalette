@@ -76,31 +76,8 @@ jobs:
         run: >-
           dotnet test tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
           -p:Platform=x64 -p:CI=true --logger "console;verbosity=normal"
-      - name: Install PowerToys
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $winget = Get-Command winget -ErrorAction SilentlyContinue
-          if ($winget) {
-            winget install --id Microsoft.PowerToys --exact --silent --scope machine `
-              --accept-package-agreements --accept-source-agreements --disable-interactivity
-          }
-          if (-not (Test-Path "$env:ProgramFiles\PowerToys\PowerToys.exe")) {
-            # No winget on the runner (or it failed): the machine-wide installer from the latest release.
-            $release = gh api repos/microsoft/PowerToys/releases/latest | ConvertFrom-Json
-            $asset = $release.assets | Where-Object name -Like 'PowerToysSetup-*-x64.exe' | Select-Object -First 1
-            $setup = Join-Path $env:RUNNER_TEMP $asset.name
-            Invoke-WebRequest $asset.browser_download_url -OutFile $setup
-            Start-Process $setup -ArgumentList '/quiet', '/norestart' -Wait
-          }
-          Get-AppxPackage -Name 'Microsoft.CommandPalette*' | Format-List Name, Version, InstallLocation
-      - name: Turn on Developer Mode
-        shell: pwsh
-        run: |
-          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
-          if (-not (Test-Path $key)) { New-Item -Path $key | Out-Null }
-          New-ItemProperty -Path $key -Name AllowDevelopmentWithoutDevLicense -Value 1 -PropertyType DWORD -Force
+      - name: Install PowerToys, turn on Developer Mode
+        uses: ./.github/actions/powertoys
       - name: A repository to list
         shell: pwsh
         run: |
@@ -111,6 +88,72 @@ jobs:
       - name: Deploy the extension
         shell: pwsh
         run: ./scripts/Deploy-Extension.ps1 -Platform x64 -NoReload
+      - name: Integration tests (installed extension)
+        env:
+          DEVTOOLS_PACKAGED_TESTS: "1"
+        run: >-
+          dotnet test tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
+          -p:Platform=x64 --no-build --filter "FullyQualifiedName~PackagedExtensionTests"
+          --logger "console;verbosity=normal"
+
+  container-build:
+    name: Build extension in the dev container
+    # scripts/Deploy-FromContainer.ps1, split over two runners: the Linux runner builds in the dev container, the
+    # Windows runner (which can't run Linux containers) makes resources.pri, deploys and tests the build.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the dev container image
+        run: docker build --tag devtools-commandpalette-dev .devcontainer
+      - name: Build the extension in the dev container
+        run: |
+          # The container runs as its own user (vscode), which has to write bin/, obj/ and artifacts/.
+          chmod -R a+rwX .
+          docker run --rm --volume "$PWD:/workspaces/repo" --workdir /workspaces/repo \
+            devtools-commandpalette-dev \
+            dotnet build src/DevTools.CommandPalette/DevTools.CommandPalette.csproj -p:Platform=x64 --nologo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: container-build
+          path: |
+            src/DevTools.CommandPalette/bin/
+            src/DevTools.CommandPalette/obj/
+            artifacts/container/
+          if-no-files-found: error
+
+  container-deploy:
+    name: Deploy the dev container build on PowerToys
+    runs-on: windows-latest
+    needs: container-build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Build the packaged tests
+        # Builds the extension on Windows too (a project reference); its output is replaced by the container build
+        # below, and the tests run with --no-build.
+        run: >-
+          dotnet build tests/DevTools.CommandPalette.Tests/DevTools.CommandPalette.Tests.csproj
+          -p:Platform=x64 -p:CI=true
+      - name: Replace the extension with the container build
+        shell: pwsh
+        run: Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
+      - uses: actions/download-artifact@v4
+        with:
+          name: container-build
+      - name: Install PowerToys, turn on Developer Mode
+        uses: ./.github/actions/powertoys
+      - name: A repository to list
+        shell: pwsh
+        run: |
+          $repo = Join-Path $env:USERPROFILE 'source\repos\Sample'
+          New-Item -ItemType Directory -Force $repo | Out-Null
+          git -C $repo init --initial-branch=main --quiet
+          Set-Content (Join-Path $repo 'Sample.slnx') '<Solution />'
+      - name: Deploy the container build
+        shell: pwsh
+        run: ./scripts/Deploy-FromContainer.ps1 -Platform x64 -SkipBuild -NoReload
       - name: Integration tests (installed extension)
         env:
           DEVTOOLS_PACKAGED_TESTS: "1"
