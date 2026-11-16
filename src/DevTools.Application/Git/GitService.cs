@@ -7,6 +7,23 @@ namespace DevTools.Application.Git;
 /// <summary>The git use cases: branches, worktrees, and the plain commands in <see cref="GitCommands"/>.</summary>
 public sealed class GitService(IGitRunner git, ISettingsProvider settings, RepositoryService repositories)
 {
+    /// <summary>Raised with the working folder after a command that may have changed it ran there.</summary>
+    public event EventHandler<string>? RepositoryChanged;
+
+    /// <summary><c>git fetch --all</c>, with <c>--prune</c> when <paramref name="prune"/> is set.</summary>
+    public Task<GitResult> FetchAsync(
+        GitRepository repository,
+        bool prune,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+        IReadOnlyList<string> arguments = prune
+            ? ["fetch", "--all", "--prune", "--quiet"]
+            : ["fetch", "--all", "--quiet"];
+        return RunAndRefreshAsync(repository.Path, arguments, cancellationToken);
+    }
+
     public async Task<GitResult> RunAsync(
         GitRepository repository,
         GitCommand command,
@@ -187,6 +204,7 @@ public sealed class GitService(IGitRunner git, ISettingsProvider settings, Repos
     {
         var result = await git.RunAsync(workingDirectory, arguments, cancellationToken).ConfigureAwait(false);
         repositories.Invalidate();
+        RepositoryChanged?.Invoke(this, workingDirectory);
         return result;
     }
 }

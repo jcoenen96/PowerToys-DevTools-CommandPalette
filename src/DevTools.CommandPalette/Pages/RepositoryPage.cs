@@ -30,13 +30,25 @@ internal sealed partial class RepositoryPage : ListPage
         IsLoading = true;
         try
         {
-            return [StatusItem(), .. CommandItems(), .. BranchItems(), .. ToolItems()];
+            return
+            [
+                StatusItem(),
+                .. CommandItems(),
+                .. BranchItems(),
+                .. Extras(RepositoryExtras.ActionItems(_services, _repository)),
+                .. Extras(RepositoryExtras.RemoteItems(_repository)),
+                .. ToolItems(),
+                .. Extras(RepositoryExtras.ManageItems(_services, _repository, () => RaiseItemsChanged())),
+            ];
         }
         finally
         {
             IsLoading = false;
         }
     }
+
+    private static IEnumerable<ListItem> Extras(IEnumerable<RepositoryExtras.Extra> extras) =>
+        extras.Select(RepositoryExtras.ToListItem);
 
     private ListItem StatusItem()
     {
