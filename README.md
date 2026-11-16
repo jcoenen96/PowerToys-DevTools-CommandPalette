@@ -92,15 +92,16 @@ The extension is an MSIX package, like every Command Palette extension. Until th
    Studio, **Build > Deploy** on *DevTools.CommandPalette* does the same.
 
 Without the .NET SDK, build in the [dev container](#in-the-dev-container) instead: with
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) running Linux containers, step 2 becomes
-nothing and step 3 becomes
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) running Linux containers, or
+[Podman](https://podman-desktop.io) with its machine started, step 2 becomes nothing and step 3 becomes
 
 ```powershell
 ./scripts/Deploy-FromContainer.ps1
 ```
 
 It builds the extension inside the dev container, on your checkout, then installs it with `Deploy-Extension.ps1`
-the same way. It takes `-Configuration`, `-Platform`, `-SkipBuild`, `-NoReload` and `-Clean` too.
+the same way. It uses Docker or Podman, whichever is installed and running (Docker first); `-ContainerEngine Podman`
+picks one. It takes `-Configuration`, `-Platform`, `-SkipBuild`, `-NoReload` and `-Clean` too.
 
 ## Set it up
 
@@ -277,7 +278,7 @@ CI does the same on a Windows runner with PowerToys installed.
 
 ### In the dev container
 
-`.devcontainer/` has everything to work on the extension, so you only need Docker: the .NET 11 SDK, PowerShell,
+`.devcontainer/` has everything to work on the extension, so you only need Docker or Podman: the .NET 11 SDK, PowerShell,
 git and Node.js. Open the repository in VS Code with the Dev Containers extension and
 choose **Reopen in Container**; it restores the dotnet tools, `npm ci` (the pre-commit hook) and the packages.
 
@@ -292,11 +293,15 @@ choose **Reopen in Container**; it restores the dotnet tools, `npm ci` (the pre-
     `scripts/Deploy-FromContainer.ps1` runs it on Windows before it installs the build.
 - Installing the extension, and its integration tests, need Windows with Command Palette: run
   `./scripts/Deploy-FromContainer.ps1` on the Windows host (it builds in the same container), not inside it.
-- The NuGet packages live in a Docker volume (`devtools-commandpalette-nuget`) that the dev container and the
-  deploy script share.
+- The NuGet packages live in a volume (`devtools-commandpalette-nuget`) that the dev container and the deploy script
+  share.
+- With Podman, set VS Code's `dev.containers.dockerPath` setting to `podman`. Rootless Podman runs the container's
+  users as unused IDs on the host, which can't write to your checkout; the deploy script passes
+  `--userns=keep-id:uid=1000,gid=1000` so the container's `vscode` user is you. In VS Code, add that to `runArgs` in
+  your copy of `devcontainer.json` if the build can't write `bin/` or `obj/`.
 
-CI builds the extension in the dev container too, and deploys and tests that build on a Windows runner with
-PowerToys.
+CI builds the extension in the dev container too, with Docker and with Podman, and deploys and tests each build on
+a Windows runner with PowerToys.
 
 ## Code style
 

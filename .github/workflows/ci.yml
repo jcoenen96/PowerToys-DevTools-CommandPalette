@@ -97,24 +97,35 @@ jobs:
           --logger "console;verbosity=normal"
 
   container-build:
-    name: Build extension in the dev container
+    name: Build extension in the dev container (${{ matrix.engine }})
     # scripts/Deploy-FromContainer.ps1, split over two runners: the Linux runner builds in the dev container, the
     # Windows runner (which can't run Linux containers) makes resources.pri, deploys and tests the build.
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        engine: [docker, podman]
     steps:
       - uses: actions/checkout@v4
       - name: Build the dev container image
-        run: docker build --tag devtools-commandpalette-dev .devcontainer
+        run: ${{ matrix.engine }} build --tag devtools-commandpalette-dev .devcontainer
       - name: Build the extension in the dev container
+        env:
+          ENGINE: ${{ matrix.engine }}
         run: |
-          # The container runs as its own user (vscode), which has to write bin/, obj/ and artifacts/.
-          chmod -R a+rwX .
-          docker run --rm --volume "$PWD:/workspaces/repo" --workdir /workspaces/repo \
+          # The container runs as its own user (vscode), which has to write bin/, obj/ and artifacts/. Docker:
+          # let everyone write. Rootless Podman: run vscode as the runner's user, as Deploy-FromContainer.ps1 does.
+          if [ "$ENGINE" = docker ]; then
+            chmod -R a+rwX .
+            user_args=()
+          else
+            user_args=(--userns=keep-id:uid=1000,gid=1000)
+          fi
+          "$ENGINE" run --rm "${user_args[@]}" --volume "$PWD:/workspaces/repo" --workdir /workspaces/repo \
             devtools-commandpalette-dev \
             dotnet build src/DevTools.CommandPalette/DevTools.CommandPalette.csproj -p:Platform=x64 --nologo
       - uses: actions/upload-artifact@v4
         with:
-          name: container-build
+          name: container-build-${{ matrix.engine }}
           path: |
             src/DevTools.CommandPalette/bin/
             src/DevTools.CommandPalette/obj/
@@ -122,9 +133,12 @@ jobs:
           if-no-files-found: error
 
   container-deploy:
-    name: Deploy the dev container build on PowerToys
+    name: Deploy the dev container build on PowerToys (${{ matrix.engine }})
     runs-on: windows-latest
     needs: container-build
+    strategy:
+      matrix:
+        engine: [docker, podman]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -141,7 +155,7 @@ jobs:
         run: Remove-Item -Recurse -Force src/DevTools.CommandPalette/bin, src/DevTools.CommandPalette/obj
       - uses: actions/download-artifact@v4
         with:
-          name: container-build
+          name: container-build-${{ matrix.engine }}
       - name: Install PowerToys, turn on Developer Mode
         uses: ./.github/actions/powertoys
       - name: A repository to list
